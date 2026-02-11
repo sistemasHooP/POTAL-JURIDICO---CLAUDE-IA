@@ -387,26 +387,21 @@
             var cliente = null;
             var cpfDigitos = termo.replace(/\D/g, '');
 
-            // ---- ESTRATEGIA 1: CPF completo -> busca na API ----
+            // ---- ESTRATEGIA 1: CPF completo -> busca direto na API ----
+            // (cache local pode ter CPFs mascarados, entao prioriza API)
             if (ehCPFCompleto(termo)) {
                 var cpfNorm = normalizarCPF(termo);
 
-                cliente = listaClientesCache.find(function (c) {
-                    return String(c.cpf || '').replace(/\D/g, '') === cpfNorm;
-                }) || null;
-
-                if (!cliente) {
-                    try {
-                        cliente = await API.call('buscarClientePorCPF', { cpf: cpfNorm }, 'POST', true);
-                        if (cliente && cliente.id) {
-                            upsertClienteNoCache(cliente);
-                        }
-                    } catch (apiErr) {
-                        if (apiErr.message && apiErr.message.toLowerCase().includes('encontrado')) {
-                            cliente = null;
-                        } else {
-                            throw apiErr;
-                        }
+                try {
+                    cliente = await API.call('buscarClientePorCPF', { cpf: cpfNorm }, 'POST', true);
+                    if (cliente && cliente.id) {
+                        upsertClienteNoCache(cliente);
+                    }
+                } catch (apiErr) {
+                    if (apiErr.message && apiErr.message.toLowerCase().includes('encontrado')) {
+                        cliente = null;
+                    } else {
+                        throw apiErr;
                     }
                 }
 
@@ -419,7 +414,8 @@
                 return;
             }
 
-            // ---- ESTRATEGIA 2: CPF parcial (6-10 digitos) -> busca no cache ----
+            // ---- ESTRATEGIA 2: CPF parcial (6-10 digitos) -> cache + API ----
+            // (cache pode ter CPFs mascarados, entao busca parcial pode falhar)
             if (pareceSerCPF(termo)) {
                 var candidatos = listaClientesCache.filter(function (c) {
                     var cCpf = String(c.cpf || '').replace(/\D/g, '');
@@ -434,8 +430,20 @@
                     return;
                 }
 
+                // Cache nao encontrou (possivelmente CPF mascarado) - tenta API se >= 10 digitos
                 if (cpfDigitos.length >= 10) {
-                    mostrarFormNovoCliente(cpfDigitos.padStart(11, '0'));
+                    var cpfPad = cpfDigitos.padStart(11, '0');
+                    try {
+                        var clienteApi = await API.call('buscarClientePorCPF', { cpf: cpfPad }, 'POST', true);
+                        if (clienteApi && clienteApi.id) {
+                            upsertClienteNoCache(clienteApi);
+                            selecionarCliente(clienteApi);
+                            return;
+                        }
+                    } catch (apiErr2) {
+                        // Nao encontrado na API - oferece cadastro
+                    }
+                    mostrarFormNovoCliente(cpfPad);
                     return;
                 }
 
