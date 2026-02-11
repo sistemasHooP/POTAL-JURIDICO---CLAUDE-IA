@@ -41,3 +41,4 @@ Object.freeze(CONFIG_CLIENTE.STORAGE_KEYS);
 
 Object.freeze(CONFIG_CLIENTE.PAGES);
 
+
