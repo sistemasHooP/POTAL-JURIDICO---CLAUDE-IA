@@ -110,8 +110,9 @@
         if (btnEditarDetalhe) {
             btnEditarDetalhe.addEventListener('click', function () {
                 if (clienteDetalheAtual) {
+                    var cliente = clienteDetalheAtual;
                     fecharModalDetalhe();
-                    abrirModalEditar(clienteDetalheAtual);
+                    abrirModalEditar(cliente);
                 }
             });
         }
@@ -260,7 +261,8 @@
             if (!termo) return true;
 
             var nome = String(c.nome_completo || c.nome || '').toLowerCase();
-            var cpf = String(c.cpf || '').replace(/\D/g, '');
+            var cpfRaw = String(c.cpf || '').toLowerCase();
+            var cpfDigits = cpfRaw.replace(/\D/g, '');
             var email = String(c.email || '').toLowerCase();
             var tel = String(c.telefone || '').replace(/\D/g, '');
             var termoDig = termo.replace(/\D/g, '');
@@ -268,7 +270,8 @@
             return (
                 nome.includes(termo) ||
                 email.includes(termo) ||
-                (termoDig && cpf.includes(termoDig)) ||
+                cpfRaw.includes(termo) ||
+                (termoDig && termoDig.length >= 3 && cpfDigits.includes(termoDig)) ||
                 (termoDig && tel.includes(termoDig))
             );
         });
@@ -283,9 +286,12 @@
     // FORMATACAO
     // =========================================================================
     function formatarCPF(cpf) {
-        var d = String(cpf || '').replace(/\D/g, '');
-        if (!d) return String(cpf || '-');
-        d = d.padStart(11, '0').slice(-11);
+        var raw = String(cpf || '');
+        // Se CPF veio mascarado da API (ex: ***.660.904-**), exibir como esta
+        if (raw.includes('*')) return raw;
+        var d = raw.replace(/\D/g, '');
+        if (!d) return raw || '-';
+        if (d.length !== 11) return raw || '-';
         return d.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4');
     }
 
