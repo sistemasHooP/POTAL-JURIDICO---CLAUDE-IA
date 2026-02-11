@@ -558,6 +558,12 @@
             return;
         }
 
+        if (!editId && !Utils.validarCPF(cpfRaw)) {
+            Utils.showToast('CPF invalido. Verifique os digitos.', 'warning');
+            document.getElementById('cliente-cpf').focus();
+            return;
+        }
+
         if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
             Utils.showToast('Digite um email valido.', 'warning');
             document.getElementById('cliente-email').focus();

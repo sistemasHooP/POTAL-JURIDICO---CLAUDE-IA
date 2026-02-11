@@ -144,6 +144,29 @@
                 e.target.value = v;
             });
         }
+
+        // Mascara CNJ: NNNNNNN-DD.AAAA.J.TT.OOOO (20 digitos)
+        var numInput = document.getElementById('numero_processo');
+        if (numInput) {
+            numInput.addEventListener('input', function (e) {
+                var v = e.target.value.replace(/\D/g, '');
+                if (v.length > 20) v = v.substring(0, 20);
+                if (v.length > 16) {
+                    v = v.replace(/^(\d{7})(\d{2})(\d{4})(\d{1})(\d{2})(\d{0,4})/, '$1-$2.$3.$4.$5.$6');
+                } else if (v.length > 14) {
+                    v = v.replace(/^(\d{7})(\d{2})(\d{4})(\d{1})(\d{0,2})/, '$1-$2.$3.$4.$5');
+                } else if (v.length > 13) {
+                    v = v.replace(/^(\d{7})(\d{2})(\d{4})(\d{0,1})/, '$1-$2.$3.$4');
+                } else if (v.length > 9) {
+                    v = v.replace(/^(\d{7})(\d{2})(\d{0,4})/, '$1-$2.$3');
+                } else if (v.length > 7) {
+                    v = v.replace(/^(\d{7})(\d{0,2})/, '$1-$2');
+                }
+                e.target.value = v;
+            });
+            numInput.setAttribute('placeholder', '0000000-00.0000.0.00.0000');
+            numInput.setAttribute('maxlength', '25');
+        }
     }
 
     // =========================================================================
@@ -589,6 +612,11 @@
         }
         if (!cpfRaw || cpfRaw.length !== 11) {
             Utils.showToast('CPF deve ter 11 digitos.', 'warning');
+            document.getElementById('novo-cliente-cpf').focus();
+            return;
+        }
+        if (!Utils.validarCPF(cpfRaw)) {
+            Utils.showToast('CPF invalido. Verifique os digitos.', 'warning');
             document.getElementById('novo-cliente-cpf').focus();
             return;
         }

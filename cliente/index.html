@@ -128,97 +128,10 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/cliente-config.js"></script>
-    <script src="js/cliente-api.js"></script>
-    <script src="js/cliente-auth.js"></script>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            
-            // Verifica se já está logado
-            ClienteAuth.redirectIfAuthenticated();
-
-            const form = document.getElementById('login-form');
-            const cpfInput = document.getElementById('cpf');
-            const btnSubmit = document.getElementById('btn-submit');
-            const btnText = document.getElementById('btn-text');
-            const btnArrow = document.getElementById('btn-arrow');
-            const btnSpinner = document.getElementById('btn-spinner');
-
-            // Máscara de CPF
-            cpfInput.addEventListener('input', function(e) {
-                let value = e.target.value.replace(/\D/g, '');
-                
-                if (value.length > 11) {
-                    value = value.substring(0, 11);
-                }
-                
-                // Formata: 000.000.000-00
-                if (value.length > 9) {
-                    value = value.replace(/(\d{3})(\d{3})(\d{3})(\d{1,2})/, '$1.$2.$3-$4');
-                } else if (value.length > 6) {
-                    value = value.replace(/(\d{3})(\d{3})(\d{1,3})/, '$1.$2.$3');
-                } else if (value.length > 3) {
-                    value = value.replace(/(\d{3})(\d{1,3})/, '$1.$2');
-                }
-                
-                e.target.value = value;
-            });
-
-            // Envio do formulário
-            form.addEventListener('submit', async function(e) {
-                e.preventDefault();
-
-                const cpf = cpfInput.value.replace(/\D/g, '');
-
-                // Validação básica
-                if (cpf.length !== 11) {
-                    ClienteUI.showToast("Digite um CPF válido com 11 dígitos.", "warning");
-                    cpfInput.focus();
-                    return;
-                }
-
-                // Estado de loading
-                btnSubmit.disabled = true;
-                btnText.textContent = "Enviando...";
-                btnArrow.classList.add('hidden');
-                btnSpinner.classList.remove('hidden');
-
-                try {
-                    const result = await ClienteAPI.solicitarCodigo(cpf);
-                    
-                    // Salva CPF temporariamente para a próxima tela
-                    ClienteAuth.saveTempCPF(cpf);
-                    
-                    // Mostra mensagem de sucesso
-                    ClienteUI.showToast(result.mensagem || "Código enviado!", "success");
-                    
-                    // Mostra email mascarado se disponível
-                    if (result.emailMascarado) {
-                        ClienteUI.showToast("Verifique: " + result.emailMascarado, "info");
-                    }
-
-                    // Redireciona para tela de verificação
-                    setTimeout(() => {
-                        ClienteUI.navigateTo(CONFIG_CLIENTE.PAGES.VERIFICAR);
-                    }, 1500);
-
-                } catch (error) {
-                    console.error("Erro:", error);
-                    ClienteUI.showToast(error.message || "Erro ao solicitar código.", "error");
-                    
-                    // Reset do botão
-                    btnSubmit.disabled = false;
-                    btnText.textContent = "Receber Código de Acesso";
-                    btnArrow.classList.remove('hidden');
-                    btnSpinner.classList.add('hidden');
-                }
-            });
-
-            // Foco inicial no campo CPF
-            cpfInput.focus();
-        });
-    </script>
+    <script src="js/cliente-config.js?v=2.0.0"></script>
+    <script src="js/cliente-api.js?v=2.0.0"></script>
+    <script src="js/cliente-auth.js?v=2.0.0"></script>
+    <script src="js/cliente-login.js?v=2.0.0"></script>
 
 </body>
 </html>
