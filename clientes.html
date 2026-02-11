@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clientes - Sistema Jurídico RPPS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <style>body { font-family: 'Inter', sans-serif; }</style>
+</head>
+<body class="bg-slate-50 min-h-screen pb-20 md:pb-0">
+
+    <nav class="bg-slate-800 text-white p-4 shadow-lg sticky top-0 z-40 md:hidden flex justify-between items-center">
+        <div class="flex items-center space-x-2">
+            <div class="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"></path></svg>
+            </div>
+            <span class="font-bold text-lg tracking-tight">RPPS Jurídico</span>
+        </div>
+    </nav>
+
+    <div class="flex h-screen overflow-hidden">
+        <aside class="hidden md:flex flex-col w-64 bg-slate-800 text-white h-full shrink-0">
+            <div class="p-6 border-b border-slate-700">
+                <h1 class="text-2xl font-bold flex items-center gap-2">
+                    <svg class="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"></path></svg>
+                    RPPS
+                </h1>
+                <p class="text-xs text-slate-400 mt-1 pl-10">Jurídico v1.0</p>
+            </div>
+
+            <div class="p-6 border-b border-slate-700 bg-slate-900/50">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center font-bold text-lg"><span id="user-initials">U</span></div>
+                    <div>
+                        <p class="text-sm font-semibold truncate w-32" id="user-name-display">Carregando...</p>
+                        <p class="text-xs text-blue-300 uppercase tracking-wider" id="user-profile-display">...</p>
+                    </div>
+                </div>
+            </div>
+
+            <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
+                <a href="dashboard.html" class="flex items-center gap-3 px-4 py-3 text-slate-300 hover:bg-slate-700 hover:text-white rounded-lg transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+                    Dashboard
+                </a>
+                <a href="processos.html" class="flex items-center gap-3 px-4 py-3 text-slate-300 hover:bg-slate-700 hover:text-white rounded-lg transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    Processos
+                </a>
+                <a href="clientes.html" class="flex items-center gap-3 px-4 py-3 bg-blue-600 rounded-lg text-white shadow-lg shadow-blue-500/30">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5-2.83M9 20H4v-2a3 3 0 015-2.83M9 20h6M9 20v-2a3 3 0 016 0v2M12 7a3 3 0 110 6 3 3 0 010-6z"></path></svg>
+                    Clientes
+                </a>
+                <a href="novo-processo.html" class="flex items-center gap-3 px-4 py-3 text-slate-300 hover:bg-slate-700 hover:text-white rounded-lg transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    Novo Processo
+                </a>
+            </nav>
+
+            <div class="p-4 border-t border-slate-700">
+                <button id="desktop-logout-btn" class="flex items-center gap-3 w-full px-4 py-2 text-slate-400 hover:text-red-400 transition-colors">Sair do Sistema</button>
+            </div>
+        </aside>
+
+        <main class="flex-1 h-full overflow-y-auto bg-slate-50 p-4 md:p-8">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-800">Clientes</h2>
+                    <p class="text-slate-500">Cadastre e consulte clientes para vincular rapidamente aos processos.</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                <div class="lg:col-span-1 bg-white rounded-xl border border-slate-200 p-5">
+                    <h3 class="text-lg font-semibold text-slate-800 mb-4">Novo Cliente</h3>
+                    <form id="form-cliente" class="space-y-3">
+                        <input id="cliente-nome" type="text" placeholder="Nome completo" class="w-full border border-slate-300 rounded-lg px-3 py-2" required>
+                        <input id="cliente-cpf" type="text" placeholder="CPF" maxlength="14" class="w-full border border-slate-300 rounded-lg px-3 py-2" required>
+                        <input id="cliente-email" type="email" placeholder="Email" class="w-full border border-slate-300 rounded-lg px-3 py-2" required>
+                        <input id="cliente-telefone" type="text" placeholder="Telefone" maxlength="15" class="w-full border border-slate-300 rounded-lg px-3 py-2">
+                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg py-2 font-medium">Cadastrar Cliente</button>
+                    </form>
+                </div>
+
+                <div class="lg:col-span-2 bg-white rounded-xl border border-slate-200 p-5">
+                    <div class="flex flex-col sm:flex-row gap-3 mb-4">
+                        <input id="busca-clientes" type="text" placeholder="Buscar por nome, CPF ou email" class="flex-1 border border-slate-300 rounded-lg px-3 py-2">
+                        <button id="btn-atualizar-clientes" type="button" class="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg">Atualizar</button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="text-left text-slate-500 border-b">
+                                    <th class="py-2">Nome</th>
+                                    <th class="py-2">CPF</th>
+                                    <th class="py-2">Email</th>
+                                    <th class="py-2">Telefone</th>
+                                    <th class="py-2">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="lista-clientes">
+                                <tr><td colspan="5" class="py-6 text-center text-slate-400">Carregando clientes...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="h-20 md:h-0"></div>
+        </main>
+    </div>
+
+    <div class="md:hidden fixed bottom-0 left-0 w-full bg-white border-t border-slate-200 flex justify-around py-3 pb-safe z-50">
+        <a href="dashboard.html" class="flex flex-col items-center text-slate-400 hover:text-slate-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg><span class="text-[10px] font-medium mt-1">Início</span></a>
+        <a href="processos.html" class="flex flex-col items-center text-slate-400 hover:text-slate-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg><span class="text-[10px] font-medium mt-1">Processos</span></a>
+        <a href="clientes.html" class="flex flex-col items-center text-blue-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5-2.83M9 20H4v-2a3 3 0 015-2.83M9 20h6M9 20v-2a3 3 0 016 0v2M12 7a3 3 0 110 6 3 3 0 010-6z"></path></svg><span class="text-[10px] font-medium mt-1">Clientes</span></a>
+        <a href="novo-processo.html" class="flex flex-col items-center text-slate-400 hover:text-slate-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg><span class="text-[10px] font-medium mt-1">Novo</span></a>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/clientes.js"></script>
+</body>
+</html>

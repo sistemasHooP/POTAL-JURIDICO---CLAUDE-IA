@@ -1,0 +1,120 @@
+/* ============================================================================
+   ARQUIVO: css/style.css
+   DESCRIÇÃO: Estilos globais + utilitários do Portal Jurídico (PWA)
+   ATUALIZAÇÃO: Spinner de carregamento em botões (.btn-loading)
+   ============================================================================ */
+
+/* Base */
+* {
+    -webkit-tap-highlight-color: transparent;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scrollbar (Desktop) */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Safe area (iOS) */
+.pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+}
+
+.pt-safe {
+    padding-top: env(safe-area-inset-top);
+}
+
+/* Utilitário: quebra texto longo */
+.break-word {
+    overflow-wrap: break-word;
+    word-break: break-word;
+}
+
+/* Timeline (detalhe do processo) */
+.timeline-line::before {
+    content: "";
+    position: absolute;
+    left: 0.75rem; /* 12px */
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: rgb(226 232 240); /* slate-200 */
+}
+
+/* Fade in */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-fadeIn {
+    animation: fadeIn 0.25s ease-out both;
+}
+
+/* ============================================================================
+   BOTÕES COM LOADING (Spinner)
+   - Use em botões que disparam requisições e podem demorar.
+   - Como usar no JS:
+       btn.classList.add('btn-loading');
+       ...
+       btn.classList.remove('btn-loading');
+   ============================================================================ */
+
+@keyframes btnSpin {
+    to { transform: rotate(360deg); }
+}
+
+/* padrão: spinner branco (botões com fundo azul/escuro) */
+.btn-loading {
+    position: relative;
+    pointer-events: none;
+    opacity: 0.88;
+}
+
+.btn-loading::after {
+    content: "";
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    width: 16px;
+    height: 16px;
+    margin-top: -8px;
+    border-radius: 9999px;
+    border: 2px solid rgba(255, 255, 255, 0.35);
+    border-top-color: rgba(255, 255, 255, 0.95);
+    animation: btnSpin 0.8s linear infinite;
+}
+
+/* opção para botões claros (texto escuro) */
+.btn-loading.btn-loading--dark::after {
+    border-color: rgba(15, 23, 42, 0.25);       /* slate-900 com alpha */
+    border-top-color: rgba(15, 23, 42, 0.90);
+}
