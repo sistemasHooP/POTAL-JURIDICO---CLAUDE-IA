@@ -665,6 +665,18 @@
         var qtdEl = document.getElementById('detalhe-qtd-processos');
         qtdEl.textContent = processos.length + (processos.length === 1 ? ' processo' : ' processos');
 
+        // Botao "Novo Processo para este Cliente" - passa dados via URL para pular Step 1
+        var btnNovoProc = document.getElementById('btn-novo-processo-cliente');
+        if (btnNovoProc) {
+            var params = new URLSearchParams();
+            params.set('cliente_id', cliente.id || '');
+            params.set('cliente_nome', cliente.nome_completo || cliente.nome || '');
+            params.set('cliente_cpf', String(cliente.cpf || '').replace(/\D/g, ''));
+            params.set('cliente_email', cliente.email || '');
+            params.set('cliente_telefone', cliente.telefone || '');
+            btnNovoProc.href = 'novo-processo.html?' + params.toString();
+        }
+
         var modal = document.getElementById('modal-detalhe');
         modal.classList.remove('hidden');
         modal.classList.add('flex');
