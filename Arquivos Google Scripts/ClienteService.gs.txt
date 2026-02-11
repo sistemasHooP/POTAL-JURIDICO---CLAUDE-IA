@@ -367,7 +367,7 @@ var ClienteService = {
       return {
         id: c.id,
         nome_completo: c.nome_completo,
-        cpf: Utils.maskCPF(c.cpf),
+        cpf: Utils.formatCPF(c.cpf),
         email: c.email,
         telefone: c.telefone,
         status: c.status,
