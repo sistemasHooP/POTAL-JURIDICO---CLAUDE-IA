@@ -72,6 +72,9 @@
         // Sync e carga de clientes
         initClientesSync();
         carregarClientes();
+
+        // Auto-preencher cliente se veio da tela de clientes (com params na URL)
+        verificarClienteViaURL();
     });
 
     // =========================================================================
@@ -821,6 +824,39 @@
             } else {
                 Utils.showToast(error.message || 'Erro ao cadastrar processo.', 'error');
             }
+        }
+    }
+
+    // =========================================================================
+    // AUTO-PREENCHER CLIENTE VIA URL (vindo da tela de clientes)
+    // =========================================================================
+    function verificarClienteViaURL() {
+        var params = new URLSearchParams(window.location.search);
+        var clienteId = params.get('cliente_id');
+        var clienteNome = params.get('cliente_nome');
+
+        if (!clienteId || !clienteNome) return;
+
+        // Monta objeto cliente a partir dos params
+        var clienteURL = {
+            id: clienteId,
+            nome_completo: clienteNome,
+            cpf: params.get('cliente_cpf') || '',
+            email: params.get('cliente_email') || '',
+            telefone: params.get('cliente_telefone') || ''
+        };
+
+        // Seleciona o cliente e avanca direto para Step 2
+        selecionarCliente(clienteURL);
+
+        setTimeout(function () {
+            avancarParaProcesso();
+            Utils.showToast('Cliente ' + clienteNome.split(' ')[0] + ' selecionado automaticamente!', 'success');
+        }, 300);
+
+        // Limpa a URL para nao reprocessar em refresh
+        if (window.history && window.history.replaceState) {
+            window.history.replaceState({}, document.title, window.location.pathname);
         }
     }
 
