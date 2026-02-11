@@ -68,7 +68,8 @@ var MovimentacoesService = {
       usuario_responsavel: auth.user.email,
       anexo_link: linkArquivo,
       anexo_nome: nomeArquivoSalvo,
-      data_prazo: payload.data_prazo ? new Date(payload.data_prazo) : ''
+      data_prazo: payload.data_prazo ? new Date(payload.data_prazo) : '',
+      mov_referencia_id: payload.mov_referencia_id ? String(payload.mov_referencia_id).trim() : ''
     };
 
     var movSalva = Database.create(CONFIG.SHEET_NAMES.MOVIMENTACOES, novaMov);

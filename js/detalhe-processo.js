@@ -1,22 +1,22 @@
 /**
  * ============================================================================
  * ARQUIVO: js/detalhe-processo.js
- * DESCRIÇÃO: Lógica da tela de detalhes, timeline, stepper, prazos inteligentes,
+ * DESCRIÇÃO: Lógica da tela de detalhes, timeline, stepper, prazos inteligentes
+ *            com sistema de referências (vinculação entre movimentações),
  *            notas internas e exportação de relatório.
- * VERSÃO: 3.0
+ * VERSÃO: 4.0 - Sistema de Referências Inteligente
  * DEPENDÊNCIAS: js/api.js, js/auth.js, js/utils.js
  * ============================================================================
  */
 
 let currentProcessId = null;
-let currentProcessData = null; // Cache dos dados do processo para exportação
+let currentProcessData = null;
+let currentMovimentacoes = []; // Lista de movimentações para popular dropdown
 
 document.addEventListener('DOMContentLoaded', function() {
 
-    // 1. Proteção de Rota
     if (!Auth.protectRoute()) return;
 
-    // 2. UI do Usuário
     Auth.updateUserInfoUI();
     const user = Auth.getUser();
     if (user && user.nome) {
@@ -24,13 +24,11 @@ document.addEventListener('DOMContentLoaded', function() {
         if (initialsEl) initialsEl.textContent = user.nome.substring(0, 1).toUpperCase();
     }
 
-    // 3. Logout Desktop
     const btnLogout = document.getElementById('desktop-logout-btn');
     if (btnLogout) {
         btnLogout.addEventListener('click', () => { if (confirm('Sair?')) Auth.logout(); });
     }
 
-    // 4. Captura ID da URL
     const params = new URLSearchParams(window.location.search);
     currentProcessId = params.get('id');
     const nomeParte = params.get('parte');
@@ -41,7 +39,6 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
 
-    // 5. Configurações de UI
     setupFileInput();
     setupNotasInternas();
 
@@ -50,16 +47,41 @@ document.addEventListener('DOMContentLoaded', function() {
         formMov.addEventListener('submit', handleMovimentacaoSubmit);
     }
 
-    // 6. Carregar Dados com Loader Personalizado
     const msgLoader = nomeParte
         ? "Abrindo autos de " + decodeURIComponent(nomeParte) + "..."
         : "Abrindo processo jurídico...";
 
     Utils.showLoading(msgLoader, "database");
-
-    // Chama o carregamento forçando a rede (sem SWR visual para evitar dados velhos)
     loadProcessoDetalhe(currentProcessId);
 });
+
+// =============================================================================
+// MAPA DE REFERÊNCIAS - Coração do sistema inteligente
+// =============================================================================
+// Dado um array de movimentações, retorna:
+// - respondidoPor: { movId: { respostaId, respostaData, respostaTipo } }
+//   (quais movimentações já foram respondidas e por quem)
+// - idsRespondidos: Set de IDs que já foram respondidos
+function buildReferenceMap(movimentacoes) {
+    const respondidoPor = {};
+    const idsRespondidos = new Set();
+
+    if (!movimentacoes) return { respondidoPor, idsRespondidos };
+
+    movimentacoes.forEach(mov => {
+        const refId = mov.mov_referencia_id;
+        if (refId) {
+            respondidoPor[refId] = {
+                respostaId: mov.id,
+                respostaData: mov.data_movimentacao,
+                respostaTipo: mov.tipo
+            };
+            idsRespondidos.add(refId);
+        }
+    });
+
+    return { respondidoPor, idsRespondidos };
+}
 
 // =============================================================================
 // VISUALIZADOR DE ARQUIVOS IN-APP (Modal)
@@ -125,7 +147,6 @@ window.viewFile = async function(url, nome) {
              document.body.appendChild(link);
              link.click();
              document.body.removeChild(link);
-
              closeFileViewer();
              Utils.showToast("Download iniciado.", "success");
         }
@@ -146,13 +167,8 @@ window.closeFileViewer = function() {
     const modal = document.getElementById('file-viewer-modal');
     const frame = document.getElementById('file-viewer-frame');
     const img = document.getElementById('file-viewer-image');
-
     modal.classList.add('hidden');
-
-    setTimeout(() => {
-        frame.src = "";
-        img.src = "";
-    }, 300);
+    setTimeout(() => { frame.src = ""; img.src = ""; }, 300);
 };
 
 // =============================================================================
@@ -172,8 +188,8 @@ function loadProcessoDetalhe(id) {
         const p = data.processo;
         const movs = data.movimentacoes;
 
-        // Salva para exportação
         currentProcessData = data;
+        currentMovimentacoes = movs || [];
 
         const cacheKey = `getProcessoDetalhe_${JSON.stringify({ id_processo: id })}`;
         Utils.Cache.set(cacheKey, data);
@@ -201,7 +217,6 @@ function loadProcessoDetalhe(id) {
         const elCriador = document.getElementById('proc-criador');
         if (elCriador) elCriador.textContent = p.criado_por ? p.criado_por.split('@')[0] : '-';
 
-        // Info do cliente vinculado
         renderClienteInfo(p);
 
         const btnDrive = document.getElementById('btn-drive');
@@ -215,16 +230,17 @@ function loadProcessoDetalhe(id) {
             }
         }
 
+        // Build reference map para saber quais prazos já foram respondidos
+        const refMap = buildReferenceMap(movs);
+
         renderStepper(p.status);
-        renderTimeline(movs);
-        renderPrazosPanel(movs);
+        renderTimeline(movs, refMap);
+        renderPrazosPanel(movs, refMap);
+        populateReferenciaDropdown(movs, refMap);
 
         // Contador de movimentações
         const countBadge = document.getElementById('mov-count-badge');
         if (countBadge) countBadge.textContent = movs ? movs.length : 0;
-
-        // Mostrar/esconder checkbox "concluir prazo"
-        toggleConcluirPrazoUI(movs);
 
         Utils.hideLoading();
 
@@ -242,14 +258,19 @@ function renderClienteInfo(processo) {
     const panel = document.getElementById('proc-cliente-info');
     if (!panel) return;
 
-    // Tenta pegar o nome e email do cliente a partir dos dados disponíveis
     const clienteId = processo.cliente_id;
     if (!clienteId) {
-        panel.classList.add('hidden');
+        // Fallback: mostra parte_nome se tiver email
+        if (processo.parte_nome && processo.email_interessado) {
+            document.getElementById('proc-cliente-nome').textContent = processo.parte_nome;
+            document.getElementById('proc-cliente-email').textContent = processo.email_interessado;
+            panel.classList.remove('hidden');
+        } else {
+            panel.classList.add('hidden');
+        }
         return;
     }
 
-    // Busca na API em background
     API.call('buscarClientePorIdGestor', { cliente_id: clienteId }, 'POST', true)
     .then(cliente => {
         if (cliente && cliente.nome_completo) {
@@ -258,7 +279,6 @@ function renderClienteInfo(processo) {
             panel.classList.remove('hidden');
         }
     }).catch(() => {
-        // Fallback: usa parte_nome como nome do cliente
         if (processo.parte_nome) {
             document.getElementById('proc-cliente-nome').textContent = processo.parte_nome;
             document.getElementById('proc-cliente-email').textContent = processo.email_interessado || '';
@@ -268,9 +288,59 @@ function renderClienteInfo(processo) {
 }
 
 // =============================================================================
-// PAINEL DE PRAZOS ATIVOS (Flutuante acima da timeline)
+// DROPDOWN "EM RESPOSTA A" - Popula com movimentações pendentes
 // =============================================================================
-function renderPrazosPanel(movimentacoes) {
+function populateReferenciaDropdown(movimentacoes, refMap) {
+    const select = document.getElementById('mov-referencia');
+    const wrap = document.getElementById('mov-referencia-wrap');
+    if (!select || !wrap) return;
+
+    // Limpa opções anteriores
+    select.innerHTML = '<option value="">Nenhuma (nova movimentação independente)</option>';
+
+    if (!movimentacoes || movimentacoes.length === 0) {
+        wrap.classList.add('hidden');
+        return;
+    }
+
+    // Filtra: movimentações que têm prazo E que NÃO foram respondidas
+    const pendentes = movimentacoes.filter(m => {
+        if (!m.data_prazo || !m.id) return false;
+        return !refMap.idsRespondidos.has(String(m.id));
+    });
+
+    if (pendentes.length === 0) {
+        wrap.classList.add('hidden');
+        return;
+    }
+
+    const hoje = new Date();
+    hoje.setHours(0,0,0,0);
+
+    pendentes.forEach(m => {
+        const prazo = new Date(m.data_prazo);
+        prazo.setHours(0,0,0,0);
+        const diffDays = Math.ceil((prazo - hoje) / (1000 * 60 * 60 * 24));
+
+        let statusTag = '';
+        if (diffDays < 0) statusTag = ' [VENCIDO ' + Math.abs(diffDays) + 'd]';
+        else if (diffDays === 0) statusTag = ' [HOJE]';
+        else if (diffDays <= 3) statusTag = ' [em ' + diffDays + 'd]';
+        else statusTag = ' [' + Utils.formatDate(m.data_prazo).split(' ')[0] + ']';
+
+        const opt = document.createElement('option');
+        opt.value = m.id;
+        opt.textContent = m.tipo + statusTag + ' - ' + (m.descricao || '').substring(0, 50);
+        select.appendChild(opt);
+    });
+
+    wrap.classList.remove('hidden');
+}
+
+// =============================================================================
+// PAINEL DE PRAZOS ATIVOS (só mostra pendentes NÃO respondidos)
+// =============================================================================
+function renderPrazosPanel(movimentacoes, refMap) {
     const panel = document.getElementById('prazos-panel');
     if (!panel) return;
 
@@ -282,25 +352,37 @@ function renderPrazosPanel(movimentacoes) {
     const hoje = new Date();
     hoje.setHours(0,0,0,0);
 
-    // Filtra movimentações que TÊM prazo definido
-    const comPrazo = movimentacoes.filter(m => m.data_prazo);
+    // Filtra: tem prazo + NÃO foi respondido
+    const pendentes = movimentacoes.filter(m => {
+        if (!m.data_prazo) return false;
+        if (m.id && refMap.idsRespondidos.has(String(m.id))) return false; // já respondido
+        return true;
+    });
 
-    if (comPrazo.length === 0) {
+    // Também lista os respondidos para mostrar como concluídos
+    const respondidos = movimentacoes.filter(m => {
+        if (!m.data_prazo) return false;
+        if (m.id && refMap.idsRespondidos.has(String(m.id))) return true;
+        return false;
+    });
+
+    if (pendentes.length === 0 && respondidos.length === 0) {
         panel.classList.add('hidden');
         return;
     }
 
-    // Separa em vencidos, urgentes (<=3 dias), e futuros
+    // Categoriza pendentes
     const vencidos = [];
     const urgentes = [];
     const futuros = [];
 
-    comPrazo.forEach(m => {
+    pendentes.forEach(m => {
         const prazo = new Date(m.data_prazo);
         prazo.setHours(0,0,0,0);
         const diffDays = Math.ceil((prazo - hoje) / (1000 * 60 * 60 * 24));
 
         const item = {
+            id: m.id,
             tipo: m.tipo,
             descricao: m.descricao,
             data_prazo: m.data_prazo,
@@ -313,21 +395,33 @@ function renderPrazosPanel(movimentacoes) {
         else futuros.push(item);
     });
 
-    // Se não tem nenhum prazo ativo (apenas históricos passados já respondidos), esconde
-    const totalAtivos = vencidos.length + urgentes.length + futuros.length;
-    if (totalAtivos === 0) {
-        panel.classList.add('hidden');
+    const totalPendentes = vencidos.length + urgentes.length + futuros.length;
+
+    // Se não tem pendentes, mostra só resumo de concluídos
+    if (totalPendentes === 0 && respondidos.length > 0) {
+        panel.innerHTML = `
+            <div class="bg-white rounded-2xl shadow-sm border border-green-200 p-4">
+                <div class="flex items-center gap-2">
+                    <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <span class="text-sm font-bold text-green-800">Todos os prazos foram atendidos</span>
+                    <span class="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold">${respondidos.length} concluído(s)</span>
+                </div>
+            </div>`;
+        panel.classList.remove('hidden');
         return;
     }
 
     let html = '<div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 space-y-3">';
     html += '<div class="flex items-center gap-2 mb-1">';
     html += '<svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
-    html += '<h3 class="text-sm font-bold text-slate-800">Prazos Ativos</h3>';
-    html += '<span class="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold">' + totalAtivos + '</span>';
+    html += '<h3 class="text-sm font-bold text-slate-800">Prazos Pendentes</h3>';
+    html += '<span class="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-bold">' + totalPendentes + ' pendente(s)</span>';
+    if (respondidos.length > 0) {
+        html += '<span class="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold">' + respondidos.length + ' concluído(s)</span>';
+    }
     html += '</div>';
 
-    // Vencidos (vermelho)
+    // Vencidos
     vencidos.forEach(item => {
         html += `
             <div class="flex items-center gap-3 p-3 bg-red-50 border border-red-200 rounded-xl animate-pulse">
@@ -336,16 +430,16 @@ function renderPrazosPanel(movimentacoes) {
                 </div>
                 <div class="flex-1 min-w-0">
                     <p class="text-xs font-bold text-red-800 uppercase">${Utils.escapeHtml(item.tipo)} - VENCIDO ${Math.abs(item.diffDays)} dia(s)</p>
-                    <p class="text-[11px] text-red-700 truncate">${Utils.escapeHtml(item.descricao.substring(0, 80))}${item.descricao.length > 80 ? '...' : ''}</p>
+                    <p class="text-[11px] text-red-700 truncate">${Utils.escapeHtml(item.descricao.substring(0, 80))}</p>
                 </div>
                 <div class="text-right shrink-0">
                     <p class="text-xs font-bold text-red-800">${item.prazoFmt}</p>
-                    <button onclick="scrollToForm()" class="text-[10px] text-red-600 hover:text-red-800 font-bold underline">Responder</button>
+                    <button onclick="responderPrazo('${item.id}')" class="text-[10px] text-red-600 hover:text-red-800 font-bold underline">Responder</button>
                 </div>
             </div>`;
     });
 
-    // Urgentes (laranja/amber)
+    // Urgentes
     urgentes.forEach(item => {
         const label = item.diffDays === 0 ? 'HOJE' : 'em ' + item.diffDays + ' dia(s)';
         html += `
@@ -355,16 +449,16 @@ function renderPrazosPanel(movimentacoes) {
                 </div>
                 <div class="flex-1 min-w-0">
                     <p class="text-xs font-bold text-amber-800 uppercase">${Utils.escapeHtml(item.tipo)} - Vence ${label}</p>
-                    <p class="text-[11px] text-amber-700 truncate">${Utils.escapeHtml(item.descricao.substring(0, 80))}${item.descricao.length > 80 ? '...' : ''}</p>
+                    <p class="text-[11px] text-amber-700 truncate">${Utils.escapeHtml(item.descricao.substring(0, 80))}</p>
                 </div>
                 <div class="text-right shrink-0">
                     <p class="text-xs font-bold text-amber-800">${item.prazoFmt}</p>
-                    <button onclick="scrollToForm()" class="text-[10px] text-amber-600 hover:text-amber-800 font-bold underline">Responder</button>
+                    <button onclick="responderPrazo('${item.id}')" class="text-[10px] text-amber-600 hover:text-amber-800 font-bold underline">Responder</button>
                 </div>
             </div>`;
     });
 
-    // Futuros (azul, mais discreto)
+    // Futuros
     futuros.forEach(item => {
         html += `
             <div class="flex items-center gap-3 p-2.5 bg-blue-50/50 border border-blue-100 rounded-lg">
@@ -383,12 +477,17 @@ function renderPrazosPanel(movimentacoes) {
     panel.classList.remove('hidden');
 }
 
-// Scroll suave até o formulário de movimentação
-window.scrollToForm = function() {
+// Botão "Responder" no painel de prazos - pré-seleciona a referência
+window.responderPrazo = function(movId) {
     const form = document.getElementById('form-movimentacao');
+    const select = document.getElementById('mov-referencia');
+
+    if (select && movId) {
+        select.value = movId;
+    }
+
     if (form) {
         form.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        // Foca no campo descrição
         setTimeout(() => {
             const desc = document.getElementById('mov-descricao');
             if (desc) desc.focus();
@@ -396,29 +495,17 @@ window.scrollToForm = function() {
     }
 };
 
-// Mostra/esconde checkbox "Concluir prazo pendente" baseado se há prazos ativos
-function toggleConcluirPrazoUI(movimentacoes) {
-    const wrap = document.getElementById('concluir-prazo-wrap');
-    if (!wrap) return;
-
-    if (!movimentacoes) { wrap.classList.add('hidden'); return; }
-
-    const hoje = new Date();
-    hoje.setHours(0,0,0,0);
-
-    const temPrazoPendente = movimentacoes.some(m => {
-        if (!m.data_prazo) return false;
-        const prazo = new Date(m.data_prazo);
-        prazo.setHours(0,0,0,0);
-        return true; // Qualquer prazo conta
-    });
-
-    if (temPrazoPendente) {
-        wrap.classList.remove('hidden');
-    } else {
-        wrap.classList.add('hidden');
+// Scroll simples ao formulário
+window.scrollToForm = function() {
+    const form = document.getElementById('form-movimentacao');
+    if (form) {
+        form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setTimeout(() => {
+            const desc = document.getElementById('mov-descricao');
+            if (desc) desc.focus();
+        }, 500);
     }
-}
+};
 
 // =============================================================================
 // STATUS UI
@@ -479,9 +566,9 @@ function renderStepper(status) {
 }
 
 // =============================================================================
-// TIMELINE
+// TIMELINE (com referências visuais)
 // =============================================================================
-function renderTimeline(movimentacoes) {
+function renderTimeline(movimentacoes, refMap) {
     const container = document.getElementById('timeline-container');
 
     if (!movimentacoes || movimentacoes.length === 0) {
@@ -494,17 +581,21 @@ function renderTimeline(movimentacoes) {
     const emptyMsg = document.getElementById('empty-msg');
     if (emptyMsg) emptyMsg.remove();
 
+    // Cria um lookup rápido por ID para encontrar a movimentação referenciada
+    const movsById = {};
+    movimentacoes.forEach(m => { if (m.id) movsById[String(m.id)] = m; });
+
     container.innerHTML = "";
     const fragment = document.createDocumentFragment();
 
     movimentacoes.forEach((mov) => {
-        fragment.appendChild(createTimelineItem(mov));
+        fragment.appendChild(createTimelineItem(mov, refMap, movsById));
     });
 
     container.appendChild(fragment);
 }
 
-function createTimelineItem(mov) {
+function createTimelineItem(mov, refMap, movsById) {
     const tipo = mov.tipo.toUpperCase();
     let iconHtml = `<svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>`;
     let bgIcon = "bg-blue-100";
@@ -521,47 +612,75 @@ function createTimelineItem(mov) {
         iconHtml = `<svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21v-8a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2zM8 11V7a4 4 0 118 0v4M12 11h.01"></path></svg>`;
     }
 
+    // ---- PRAZO BADGE ----
     let prazoHtml = "";
     if (mov.data_prazo) {
         const prazoFmt = Utils.formatDate(mov.data_prazo).split(' ')[0];
-
         const hoje = new Date();
         hoje.setHours(0,0,0,0);
         const prazo = new Date(mov.data_prazo);
         prazo.setHours(0,0,0,0);
-
-        let colorClass = "bg-amber-50 border-amber-200 text-amber-800";
-        let iconPulse = "";
-        let statusLabel = "Vence hoje";
-
         const diffDays = Math.ceil((prazo - hoje) / (1000 * 60 * 60 * 24));
 
-        if (diffDays < 0) {
-            colorClass = "bg-red-50 border-red-200 text-red-800";
-            iconPulse = "animate-pulse";
-            statusLabel = "VENCIDO " + Math.abs(diffDays) + " dia(s)";
-        } else if (diffDays === 0) {
-            colorClass = "bg-amber-50 border-amber-200 text-amber-800";
-            statusLabel = "Vence HOJE";
-        } else if (diffDays <= 3) {
-            colorClass = "bg-amber-50 border-amber-200 text-amber-800";
-            statusLabel = "Vence em " + diffDays + " dia(s)";
-        } else {
-            colorClass = "bg-blue-50 border-blue-200 text-blue-800";
-            statusLabel = "Vence em " + diffDays + " dia(s)";
-        }
+        // Verifica se este prazo foi respondido
+        const foiRespondido = mov.id && refMap.idsRespondidos.has(String(mov.id));
+        const resposta = foiRespondido ? refMap.respondidoPor[String(mov.id)] : null;
 
-        prazoHtml = `
-            <div class="mt-3 px-3 py-2 ${colorClass} border rounded-lg flex items-center justify-between gap-2 text-xs font-bold uppercase tracking-wide">
-                <div class="flex items-center gap-2">
-                    <svg class="w-4 h-4 flex-shrink-0 ${iconPulse}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    <span>${prazoFmt} - ${statusLabel}</span>
-                </div>
-                <button onclick="scrollToForm()" class="text-[10px] underline hover:no-underline opacity-80 hover:opacity-100 normal-case font-semibold">Responder</button>
-            </div>
-        `;
+        if (foiRespondido && resposta) {
+            // PRAZO CONCLUÍDO (verde)
+            prazoHtml = `
+                <div class="mt-3 px-3 py-2 bg-green-50 border border-green-200 text-green-800 rounded-lg flex items-center justify-between gap-2 text-xs font-bold uppercase tracking-wide">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <span>Prazo ${prazoFmt} - CONCLUÍDO</span>
+                    </div>
+                    <span class="text-[10px] normal-case font-semibold">Respondido via ${Utils.escapeHtml(resposta.respostaTipo)} em ${Utils.formatDate(resposta.respostaData).split(' ')[0]}</span>
+                </div>`;
+        } else {
+            // PRAZO PENDENTE (vermelho/amarelo/azul)
+            let colorClass = "bg-amber-50 border-amber-200 text-amber-800";
+            let iconPulse = "";
+            let statusLabel = "Vence hoje";
+
+            if (diffDays < 0) {
+                colorClass = "bg-red-50 border-red-200 text-red-800";
+                iconPulse = "animate-pulse";
+                statusLabel = "VENCIDO " + Math.abs(diffDays) + " dia(s)";
+            } else if (diffDays === 0) {
+                statusLabel = "Vence HOJE";
+            } else if (diffDays <= 3) {
+                statusLabel = "Vence em " + diffDays + " dia(s)";
+            } else {
+                colorClass = "bg-blue-50 border-blue-200 text-blue-800";
+                statusLabel = "Vence em " + diffDays + " dia(s)";
+            }
+
+            prazoHtml = `
+                <div class="mt-3 px-3 py-2 ${colorClass} border rounded-lg flex items-center justify-between gap-2 text-xs font-bold uppercase tracking-wide">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-4 h-4 flex-shrink-0 ${iconPulse}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <span>${prazoFmt} - ${statusLabel}</span>
+                    </div>
+                    <button onclick="responderPrazo('${mov.id || ''}')" class="text-[10px] underline hover:no-underline opacity-80 hover:opacity-100 normal-case font-semibold">Responder</button>
+                </div>`;
+        }
     }
 
+    // ---- BADGE "EM RESPOSTA A" (se esta movimentação referencia outra) ----
+    let referenciaHtml = "";
+    if (mov.mov_referencia_id && movsById) {
+        const movOriginal = movsById[String(mov.mov_referencia_id)];
+        if (movOriginal) {
+            const prazoOriginal = movOriginal.data_prazo ? Utils.formatDate(movOriginal.data_prazo).split(' ')[0] : '';
+            referenciaHtml = `
+                <div class="mt-2 mb-1 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-lg flex items-center gap-2 text-[11px] text-emerald-800">
+                    <svg class="w-3.5 h-3.5 shrink-0 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg>
+                    <span class="font-semibold">Em resposta a: ${Utils.escapeHtml(movOriginal.tipo)}${prazoOriginal ? ' (prazo ' + prazoOriginal + ')' : ''}</span>
+                </div>`;
+        }
+    }
+
+    // ---- ANEXO ----
     let anexoHtml = "";
     if (mov.anexo_link) {
         const safeUrl = mov.anexo_link.replace(/'/g, "\\'");
@@ -600,6 +719,7 @@ function createTimelineItem(mov) {
                 <span class="text-xs font-semibold text-slate-500 bg-slate-50 px-2 py-1 rounded border border-slate-100">${Utils.formatDate(mov.data_movimentacao)}</span>
             </div>
 
+            ${referenciaHtml}
             ${prazoHtml}
 
             <div class="text-sm text-slate-600 leading-relaxed break-words mt-2">
@@ -613,7 +733,7 @@ function createTimelineItem(mov) {
 }
 
 // =============================================================================
-// SUBMIT MOVIMENTAÇÃO (com suporte a concluir prazo)
+// SUBMIT MOVIMENTAÇÃO (com referência)
 // =============================================================================
 async function handleMovimentacaoSubmit(e) {
     e.preventDefault();
@@ -623,17 +743,12 @@ async function handleMovimentacaoSubmit(e) {
     const novoStatus = document.getElementById('mov-novo-status').value;
     const fileInput = document.getElementById('mov-arquivo');
     const dataPrazo = document.getElementById('mov-prazo').value;
-    const concluirPrazo = document.getElementById('mov-concluir-prazo');
+    const referenciaSelect = document.getElementById('mov-referencia');
+    const referenciaId = referenciaSelect ? referenciaSelect.value : '';
 
     if (!tipo || !descricao) {
         Utils.showToast("Preencha tipo e descrição.", "warning");
         return;
-    }
-
-    // Se o advogado marcou "concluir prazo", envia data_prazo vazia para limpar
-    let prazoFinal = dataPrazo || null;
-    if (concluirPrazo && concluirPrazo.checked && !dataPrazo) {
-        prazoFinal = ''; // String vazia limpa o prazo no backend
     }
 
     const payload = {
@@ -641,10 +756,16 @@ async function handleMovimentacaoSubmit(e) {
         tipo: tipo,
         descricao: descricao,
         novo_status: novoStatus || null,
-        data_prazo: prazoFinal
+        data_prazo: dataPrazo || null,
+        mov_referencia_id: referenciaId || null
     };
 
-    // --- CENÁRIO 1: UPLOAD (Loading Normal) ---
+    // Se selecionou uma referência e não definiu novo prazo, limpa o prazo do processo
+    if (referenciaId && !dataPrazo) {
+        payload.data_prazo = '';
+    }
+
+    // --- CENÁRIO 1: UPLOAD ---
     if (fileInput.files.length > 0) {
         const file = fileInput.files[0];
         try {
@@ -686,14 +807,20 @@ async function handleMovimentacaoSubmit(e) {
         usuario_responsavel: currentUser ? currentUser.email : "Eu",
         anexo_link: null,
         anexo_nome: null,
-        data_prazo: dataPrazo || null
+        data_prazo: dataPrazo || null,
+        mov_referencia_id: referenciaId || null
     };
 
     const container = document.getElementById('timeline-container');
     const emptyMsg = document.getElementById('empty-msg');
     if (emptyMsg) emptyMsg.remove();
 
-    const newItem = createTimelineItem(optimisticMov);
+    // Para UI otimista, precisamos do refMap atualizado
+    const tempRefMap = buildReferenceMap([...currentMovimentacoes, optimisticMov]);
+    const tempMovsById = {};
+    currentMovimentacoes.forEach(m => { if (m.id) tempMovsById[String(m.id)] = m; });
+
+    const newItem = createTimelineItem(optimisticMov, tempRefMap, tempMovsById);
     if (container.firstChild) container.insertBefore(newItem, container.firstChild);
     else container.appendChild(newItem);
 
@@ -710,14 +837,16 @@ async function handleMovimentacaoSubmit(e) {
         const cacheKey = `getProcessoDetalhe_${JSON.stringify({ id_processo: currentProcessId })}`;
         Utils.Cache.set(cacheKey, freshData);
         currentProcessData = freshData;
+        currentMovimentacoes = freshData.movimentacoes || [];
 
         const p = freshData.processo;
         const movs = freshData.movimentacoes;
+        const freshRefMap = buildReferenceMap(movs);
 
         updateStatusUI(p.status);
-        renderTimeline(movs);
-        renderPrazosPanel(movs);
-        toggleConcluirPrazoUI(movs);
+        renderTimeline(movs, freshRefMap);
+        renderPrazosPanel(movs, freshRefMap);
+        populateReferenciaDropdown(movs, freshRefMap);
 
         const countBadge = document.getElementById('mov-count-badge');
         if (countBadge) countBadge.textContent = movs ? movs.length : 0;
@@ -741,12 +870,9 @@ function setupNotasInternas() {
     if (!procId) return;
 
     const storageKey = 'notas_processo_' + procId;
-
-    // Carrega notas salvas
     const saved = localStorage.getItem(storageKey);
     if (saved) textarea.value = saved;
 
-    // Salva automaticamente ao digitar (debounce)
     let timer = null;
     textarea.addEventListener('input', function() {
         if (statusEl) statusEl.textContent = 'Salvando...';
@@ -773,16 +899,33 @@ window.exportarRelatorio = function() {
     const user = Auth.getUser();
     const agora = new Date();
 
-    // Monta o HTML do relatório
+    const refMap = buildReferenceMap(movs);
+
+    // Lookup para referências
+    const movsById = {};
+    movs.forEach(m => { if (m.id) movsById[String(m.id)] = m; });
+
     let movsHtml = '';
-    // Inverte para ordem cronológica (mais antigo primeiro)
     const movsOrdenadas = [...movs].reverse();
 
     movsOrdenadas.forEach((mov, idx) => {
         let prazoStr = '';
         if (mov.data_prazo) {
-            prazoStr = '<br><strong style="color:#d97706;">Prazo: ' + Utils.formatDate(mov.data_prazo) + '</strong>';
+            const foiRespondido = mov.id && refMap.idsRespondidos.has(String(mov.id));
+            if (foiRespondido) {
+                const resp = refMap.respondidoPor[String(mov.id)];
+                prazoStr = '<br><strong style="color:#16a34a;">Prazo ' + Utils.formatDate(mov.data_prazo) + ' - CONCLUÍDO via ' + Utils.escapeHtml(resp.respostaTipo) + ' em ' + Utils.formatDate(resp.respostaData) + '</strong>';
+            } else {
+                prazoStr = '<br><strong style="color:#d97706;">Prazo: ' + Utils.formatDate(mov.data_prazo) + ' - PENDENTE</strong>';
+            }
         }
+
+        let refStr = '';
+        if (mov.mov_referencia_id && movsById[String(mov.mov_referencia_id)]) {
+            const orig = movsById[String(mov.mov_referencia_id)];
+            refStr = '<br><em style="color:#059669;">Em resposta a: ' + Utils.escapeHtml(orig.tipo) + '</em>';
+        }
+
         let anexoStr = '';
         if (mov.anexo_nome) {
             anexoStr = '<br><em style="color:#2563eb;">Anexo: ' + Utils.escapeHtml(mov.anexo_nome) + '</em>';
@@ -800,13 +943,13 @@ window.exportarRelatorio = function() {
                 </td>
                 <td style="padding:10px;vertical-align:top;">
                     ${Utils.escapeHtml(mov.descricao).replace(/\n/g, '<br>')}
+                    ${refStr}
                     ${prazoStr}
                     ${anexoStr}
                 </td>
             </tr>`;
     });
 
-    // Notas internas (se existirem)
     const notasKey = 'notas_processo_' + currentProcessId;
     const notas = localStorage.getItem(notasKey) || '';
     let notasSection = '';
@@ -915,7 +1058,6 @@ window.exportarRelatorio = function() {
 </body>
 </html>`;
 
-    // Abre em nova janela para impressão
     const win = window.open('', '_blank');
     if (win) {
         win.document.write(relatorioHtml);
@@ -935,9 +1077,9 @@ function resetForm() {
     if(fileName) fileName.textContent = "Clique para anexar PDF ou Imagem";
     if(icon) icon.classList.remove('text-blue-500');
 
-    // Reset checkbox concluir prazo
-    const checkPrazo = document.getElementById('mov-concluir-prazo');
-    if (checkPrazo) checkPrazo.checked = false;
+    // Reset referência
+    const refSelect = document.getElementById('mov-referencia');
+    if (refSelect) refSelect.value = '';
 }
 
 function setupFileInput() {

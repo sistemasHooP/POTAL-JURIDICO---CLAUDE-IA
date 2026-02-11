@@ -287,6 +287,22 @@
                                 <input type="date" id="mov-prazo" class="block w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow bg-slate-50 hover:bg-white">
                             </div>
 
+                            <!-- Em resposta a (vincula a uma movimentação anterior) -->
+                            <div id="mov-referencia-wrap" class="hidden">
+                                <label class="block text-xs font-bold text-slate-700 uppercase mb-1 ml-1">
+                                    Em Resposta a (Opcional)
+                                </label>
+                                <div class="relative">
+                                    <select id="mov-referencia" class="block w-full pl-3 pr-10 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-slate-50 hover:bg-white transition-colors cursor-pointer">
+                                        <option value="">Nenhuma (nova movimentação independente)</option>
+                                    </select>
+                                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500">
+                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                    </div>
+                                </div>
+                                <p class="text-[10px] text-slate-400 mt-1">Vincule esta movimentação a um prazo anterior para marcar como concluído</p>
+                            </div>
+
                             <div>
                                 <label class="block text-xs font-bold text-slate-700 uppercase mb-1 ml-1">Descrição</label>
                                 <textarea id="mov-descricao" required rows="4" class="block w-full px-3 py-3 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow bg-slate-50 hover:bg-white resize-none" placeholder="Descreva os detalhes deste andamento..."></textarea>
@@ -302,17 +318,6 @@
                                         <p id="file-name" class="text-xs text-slate-500 font-medium truncate max-w-[200px]">Clique para anexar PDF ou Imagem</p>
                                     </div>
                                     <input type="file" id="mov-arquivo" class="hidden" accept=".pdf,image/*" />
-                                </label>
-                            </div>
-
-                            <!-- Concluir prazo pendente -->
-                            <div id="concluir-prazo-wrap" class="hidden">
-                                <label class="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-xl cursor-pointer hover:bg-green-100 transition-colors">
-                                    <input type="checkbox" id="mov-concluir-prazo" class="w-4 h-4 text-green-600 rounded border-slate-300 focus:ring-green-500">
-                                    <div>
-                                        <span class="text-sm font-semibold text-green-800">Concluir prazo pendente</span>
-                                        <p class="text-[10px] text-green-600">Marca o prazo atual como atendido e remove o alerta</p>
-                                    </div>
                                 </label>
                             </div>
 
