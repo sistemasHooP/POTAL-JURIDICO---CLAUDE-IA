@@ -10,7 +10,7 @@
 const CONFIG = {
     // URL de produção do Google Apps Script (Web App)
     // Gerada em: Implantar > Nova implantação > App da Web
-    API_URL: "https://script.google.com/macros/s/AKfycbysNj8BfIlGqNFkSV8tJ2pPjWD3Xi0UFVBBfJPQnHqd3t4h5RtqzQK3DgxzJXtdPLks/exec",
+    API_URL: "https://script.google.com/macros/s/AKfycbzTHc9bYlnNCGkqkLarZynJ6DEObGhx8aMFJB5hQf-YXUXGN3Nb2woWn6EKxohF0wez/exec",
 
     // Nome da aplicação para exibição em títulos e rodapés
     APP_NAME: "Sistema Jurídico RPPS",
