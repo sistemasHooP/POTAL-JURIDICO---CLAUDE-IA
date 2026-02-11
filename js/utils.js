@@ -192,5 +192,34 @@ const Utils = {
     },
 
     navigateTo: function(page) { window.location.href = page; },
-    escapeHtml: function(text) { return text ? text.replace(/</g, "&lt;").replace(/>/g, "&gt;") : ""; }
+    escapeHtml: function(text) {
+        if (!text) return '';
+        return String(text)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    },
+
+    /**
+     * Valida CPF usando algoritmo oficial brasileiro (dígitos verificadores).
+     * @param {string} cpf - CPF (apenas dígitos ou com pontuação)
+     * @returns {boolean}
+     */
+    validarCPF: function(cpf) {
+        var d = String(cpf || '').replace(/\D/g, '');
+        if (d.length !== 11) return false;
+        if (/^(\d)\1{10}$/.test(d)) return false;
+        var sum = 0, i;
+        for (i = 0; i < 9; i++) sum += parseInt(d.charAt(i)) * (10 - i);
+        var rem = sum % 11;
+        var dig1 = rem < 2 ? 0 : 11 - rem;
+        if (parseInt(d.charAt(9)) !== dig1) return false;
+        sum = 0;
+        for (i = 0; i < 10; i++) sum += parseInt(d.charAt(i)) * (11 - i);
+        rem = sum % 11;
+        var dig2 = rem < 2 ? 0 : 11 - rem;
+        return parseInt(d.charAt(10)) === dig2;
+    }
 };

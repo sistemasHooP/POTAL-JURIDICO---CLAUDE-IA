@@ -32,8 +32,16 @@ const CONFIG_CLIENTE = {
     },
 
     // Tempo para expirar sessão no front (em ms) - 4 horas
-    SESSION_TIMEOUT: 4 * 60 * 60 * 1000
+    SESSION_TIMEOUT: 4 * 60 * 60 * 1000,
+
+    // Contato do escritório (usado nos links de telefone e WhatsApp)
+    CONTATO: {
+        TELEFONE: "5584999999999",
+        TELEFONE_DISPLAY: "(84) 99999-9999"
+    }
 };
+
+Object.freeze(CONFIG_CLIENTE.CONTATO);
 
 // Congela para evitar modificações acidentais
 Object.freeze(CONFIG_CLIENTE);
