@@ -356,8 +356,7 @@
         if (raw.includes('*')) return raw;
         var d = raw.replace(/\D/g, '');
         if (!d) return raw || '-';
-        if (d.length !== 11) return raw || '-';
-        return d.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4');
+        return d;
     }
 
     function formatarTelefone(telefone) {
