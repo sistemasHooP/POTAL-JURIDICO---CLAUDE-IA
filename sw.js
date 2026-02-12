@@ -13,7 +13,7 @@
  */
 
 const APP_PREFIX = 'rpps-juridico';
-const CACHE_VERSION = 'v6'; // sempre aumente quando mudar o SW
+const CACHE_VERSION = 'v7'; // sempre aumente quando mudar o SW
 const CACHE_NAME = `${APP_PREFIX}-${CACHE_VERSION}`;
 
 // ✅ IMPORTANTE:
@@ -21,45 +21,47 @@ const CACHE_NAME = `${APP_PREFIX}-${CACHE_VERSION}`;
 //  - https://cdn.tailwindcss.com
 //  - https://fonts.googleapis.com
 // Porque o cache.addAll usa fetch() e pode dar CORS/Failed to fetch.
+// IMPORTANTE: Usar caminhos relativos (./) para funcionar em qualquer subdiretório
+// (ex: GitHub Pages em /POTAL-JURIDICO---CLAUDE-IA/ ou raiz)
 const PRECACHE_URLS = [
-  '/', // raiz
+  './', // raiz
 
   // Páginas (gestor)
-  '/index.html',
-  '/dashboard.html',
-  '/clientes.html',
-  '/processos.html',
-  '/novo-processo.html',
-  '/detalhe-processo.html',
+  './index.html',
+  './dashboard.html',
+  './clientes.html',
+  './processos.html',
+  './novo-processo.html',
+  './detalhe-processo.html',
 
   // PWA
-  '/manifest.json',
-  '/logo.png',
+  './manifest.json',
+  './logo.png',
 
   // CSS
-  '/css/style.css',
+  './css/style.css',
 
   // JS (gestor)
-  '/js/config.js',
-  '/js/utils.js',
-  '/js/api.js',
-  '/js/auth.js',
-  '/js/login.js',
-  '/js/dashboard.js',
-  '/js/clientes.js',
-  '/js/processos.js',
-  '/js/novo-processo.js',
-  '/js/detalhe-processo.js',
-  '/js/pwa.js',
+  './js/config.js',
+  './js/utils.js',
+  './js/api.js',
+  './js/auth.js',
+  './js/login.js',
+  './js/dashboard.js',
+  './js/clientes.js',
+  './js/processos.js',
+  './js/novo-processo.js',
+  './js/detalhe-processo.js',
+  './js/pwa.js',
 
   // Área do cliente
-  '/cliente/index.html',
-  '/cliente/processos.html',
-  '/cliente/processo.html',
-  '/cliente/verificar.html',
-  '/cliente/js/cliente-config.js',
-  '/cliente/js/cliente-auth.js',
-  '/cliente/js/cliente-api.js'
+  './cliente/index.html',
+  './cliente/processos.html',
+  './cliente/processo.html',
+  './cliente/verificar.html',
+  './cliente/js/cliente-config.js',
+  './cliente/js/cliente-auth.js',
+  './cliente/js/cliente-api.js'
 ];
 
 // ------------------------------------------------------------
@@ -113,8 +115,8 @@ async function networkFirst(request) {
     const cached = await cache.match(request);
     if (cached) return cached;
 
-    // fallback final: index.html
-    const fallback = await cache.match('/index.html');
+    // fallback final: index.html (relativo ao SW)
+    const fallback = await cache.match(new URL('./index.html', self.location.href).href);
     return fallback || new Response('Offline', { status: 503, headers: { 'Content-Type': 'text/plain' } });
   }
 }
