@@ -104,13 +104,29 @@ var MovimentacoesService = {
       Database.update(CONFIG.SHEET_NAMES.PROCESSOS, processo.id, updatesProcesso);
     }
 
-    // Notificação por e-mail
+    // Notificação por e-mail (respeita preferência do cliente)
     var emailInteressado = String(processo.email_interessado || '').trim().toLowerCase();
     if (emailInteressado && Utils.isValidEmail(emailInteressado)) {
-      try {
-        this._enviarEmailNotificacao(processo, novaMov, payload.data_prazo);
-      } catch (emailError) {
-        Logger.log('[MovimentacoesService] Erro ao enviar email: ' + emailError);
+      // Verifica se o cliente desativou notificações
+      var notificacoesAtivas = true;
+      if (processo.cliente_id) {
+        try {
+          var clienteNotif = Database.findById(CONFIG.SHEET_NAMES.CLIENTES, processo.cliente_id);
+          if (clienteNotif && String(clienteNotif.notificacoes_ativas || '').toUpperCase() === 'NAO') {
+            notificacoesAtivas = false;
+            Logger.log('[MovimentacoesService] Notificação desativada para cliente ID: ' + processo.cliente_id);
+          }
+        } catch (clienteErr) {
+          Logger.log('[MovimentacoesService] Erro ao verificar preferência de notificação: ' + clienteErr);
+        }
+      }
+
+      if (notificacoesAtivas) {
+        try {
+          this._enviarEmailNotificacao(processo, novaMov, payload.data_prazo);
+        } catch (emailError) {
+          Logger.log('[MovimentacoesService] Erro ao enviar email: ' + emailError);
+        }
       }
     }
 
