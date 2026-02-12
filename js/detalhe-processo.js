@@ -4,7 +4,7 @@
  * DESCRIÇÃO: Lógica da tela de detalhes, timeline, stepper, prazos inteligentes
  *            com sistema de referências (vinculação entre movimentações),
  *            notas internas e exportação de relatório.
- * VERSÃO: 4.0 - Sistema de Referências Inteligente
+ * VERSÃO: 5.0 - Prazos Persistentes, Caminho de Respostas e Notificações Inteligentes
  * DEPENDÊNCIAS: js/api.js, js/auth.js, js/utils.js
  * ============================================================================
  */
@@ -12,6 +12,7 @@
 let currentProcessId = null;
 let currentProcessData = null;
 let currentMovimentacoes = []; // Lista de movimentações para popular dropdown
+let localReferences = {}; // Rastreia referências criadas na sessão para persistência imediata
 
 document.addEventListener('DOMContentLoaded', function() {
 
@@ -71,12 +72,20 @@ function buildReferenceMap(movimentacoes) {
     movimentacoes.forEach(mov => {
         const refId = mov.mov_referencia_id;
         if (refId) {
-            respondidoPor[refId] = {
+            respondidoPor[String(refId)] = {
                 respostaId: mov.id,
                 respostaData: mov.data_movimentacao,
                 respostaTipo: mov.tipo
             };
-            idsRespondidos.add(refId);
+            idsRespondidos.add(String(refId));
+        }
+    });
+
+    // Merge com referências locais da sessão (garante persistência imediata)
+    Object.keys(localReferences).forEach(refId => {
+        if (!respondidoPor[String(refId)]) {
+            respondidoPor[String(refId)] = localReferences[refId];
+            idsRespondidos.add(String(refId));
         }
     });
 
@@ -293,10 +302,14 @@ function renderClienteInfo(processo) {
 function populateReferenciaDropdown(movimentacoes, refMap) {
     const select = document.getElementById('mov-referencia');
     const wrap = document.getElementById('mov-referencia-wrap');
+    const infoEl = document.getElementById('mov-referencia-info');
     if (!select || !wrap) return;
 
     // Limpa opções anteriores
     select.innerHTML = '<option value="">Nenhuma (nova movimentação independente)</option>';
+
+    // Limpa info de seleção
+    if (infoEl) infoEl.innerHTML = '';
 
     if (!movimentacoes || movimentacoes.length === 0) {
         wrap.classList.add('hidden');
@@ -317,22 +330,76 @@ function populateReferenciaDropdown(movimentacoes, refMap) {
     const hoje = new Date();
     hoje.setHours(0,0,0,0);
 
-    pendentes.forEach(m => {
+    // Categoriza e ordena por urgência (vencidos primeiro)
+    const categorizados = pendentes.map(m => {
         const prazo = new Date(m.data_prazo);
         prazo.setHours(0,0,0,0);
         const diffDays = Math.ceil((prazo - hoje) / (1000 * 60 * 60 * 24));
+        return { ...m, diffDays };
+    }).sort((a, b) => a.diffDays - b.diffDays);
 
+    categorizados.forEach(m => {
         let statusTag = '';
-        if (diffDays < 0) statusTag = ' [VENCIDO ' + Math.abs(diffDays) + 'd]';
-        else if (diffDays === 0) statusTag = ' [HOJE]';
-        else if (diffDays <= 3) statusTag = ' [em ' + diffDays + 'd]';
-        else statusTag = ' [' + Utils.formatDate(m.data_prazo).split(' ')[0] + ']';
+        let urgencyPrefix = '';
+        if (m.diffDays < 0) {
+            statusTag = ' VENCIDO ' + Math.abs(m.diffDays) + 'd';
+            urgencyPrefix = '🔴 ';
+        } else if (m.diffDays === 0) {
+            statusTag = ' HOJE';
+            urgencyPrefix = '🟡 ';
+        } else if (m.diffDays <= 3) {
+            statusTag = ' em ' + m.diffDays + 'd';
+            urgencyPrefix = '🟡 ';
+        } else {
+            statusTag = ' ' + Utils.formatDate(m.data_prazo).split(' ')[0];
+            urgencyPrefix = '🔵 ';
+        }
 
         const opt = document.createElement('option');
         opt.value = m.id;
-        opt.textContent = m.tipo + statusTag + ' - ' + (m.descricao || '').substring(0, 50);
+        opt.textContent = urgencyPrefix + m.tipo + ' [' + statusTag.trim() + '] - ' + (m.descricao || '').substring(0, 60);
+        opt.dataset.tipo = m.tipo;
+        opt.dataset.prazo = m.data_prazo;
+        opt.dataset.descricao = (m.descricao || '').substring(0, 100);
         select.appendChild(opt);
     });
+
+    // Evento de mudança - mostra preview do caminho
+    select.onchange = function() {
+        if (!infoEl) return;
+        const selectedOpt = select.options[select.selectedIndex];
+        if (!select.value || !selectedOpt.dataset.tipo) {
+            infoEl.innerHTML = '';
+            return;
+        }
+        const tipo = selectedOpt.dataset.tipo;
+        const prazo = selectedOpt.dataset.prazo ? Utils.formatDate(selectedOpt.dataset.prazo).split(' ')[0] : '';
+        const descricao = selectedOpt.dataset.descricao || '';
+        const tipoResposta = document.getElementById('mov-tipo').value || '(selecione o tipo)';
+
+        infoEl.innerHTML = `
+            <div class="mt-2 p-2.5 bg-emerald-50 border border-emerald-200 rounded-lg">
+                <p class="text-[10px] font-bold text-emerald-700 uppercase tracking-wider mb-1.5">Caminho da Resposta:</p>
+                <div class="flex items-center gap-1.5 flex-wrap">
+                    <span class="text-[10px] font-bold text-slate-700 bg-white px-2 py-0.5 rounded border border-slate-200">${Utils.escapeHtml(tipo)}</span>
+                    <span class="text-[10px] text-slate-400">${prazo ? '(' + prazo + ')' : ''}</span>
+                    <svg class="w-3 h-3 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
+                    <span class="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-300">${Utils.escapeHtml(tipoResposta)}</span>
+                    <span class="text-[10px] text-emerald-600">(esta resposta)</span>
+                </div>
+                <p class="text-[10px] text-slate-500 mt-1 truncate">Ref: ${Utils.escapeHtml(descricao)}</p>
+            </div>`;
+    };
+
+    // Também escuta mudanças no tipo para atualizar o preview
+    const tipoSelect = document.getElementById('mov-tipo');
+    if (tipoSelect) {
+        const originalOnChange = tipoSelect.onchange;
+        tipoSelect.onchange = function(e) {
+            if (originalOnChange) originalOnChange.call(this, e);
+            if (select.value) select.onchange();
+        };
+    }
 
     wrap.classList.remove('hidden');
 }
@@ -355,11 +422,11 @@ function renderPrazosPanel(movimentacoes, refMap) {
     // Filtra: tem prazo + NÃO foi respondido
     const pendentes = movimentacoes.filter(m => {
         if (!m.data_prazo) return false;
-        if (m.id && refMap.idsRespondidos.has(String(m.id))) return false; // já respondido
+        if (m.id && refMap.idsRespondidos.has(String(m.id))) return false;
         return true;
     });
 
-    // Também lista os respondidos para mostrar como concluídos
+    // Respondidos para mostrar como concluídos
     const respondidos = movimentacoes.filter(m => {
         if (!m.data_prazo) return false;
         if (m.id && refMap.idsRespondidos.has(String(m.id))) return true;
@@ -386,6 +453,7 @@ function renderPrazosPanel(movimentacoes, refMap) {
             tipo: m.tipo,
             descricao: m.descricao,
             data_prazo: m.data_prazo,
+            data_movimentacao: m.data_movimentacao,
             prazoFmt: Utils.formatDate(m.data_prazo).split(' ')[0],
             diffDays: diffDays
         };
@@ -399,20 +467,30 @@ function renderPrazosPanel(movimentacoes, refMap) {
 
     // Se não tem pendentes, mostra só resumo de concluídos
     if (totalPendentes === 0 && respondidos.length > 0) {
-        panel.innerHTML = `
-            <div class="bg-white rounded-2xl shadow-sm border border-green-200 p-4">
-                <div class="flex items-center gap-2">
-                    <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    <span class="text-sm font-bold text-green-800">Todos os prazos foram atendidos</span>
-                    <span class="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold">${respondidos.length} concluído(s)</span>
-                </div>
-            </div>`;
+        let concHtml = '<div class="bg-white rounded-2xl shadow-sm border border-green-200 p-4 space-y-2">';
+        concHtml += '<div class="flex items-center gap-2">';
+        concHtml += '<svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
+        concHtml += '<span class="text-sm font-bold text-green-800">Todos os prazos foram atendidos</span>';
+        concHtml += '<span class="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold">' + respondidos.length + ' concluído(s)</span>';
+        concHtml += '</div>';
+        respondidos.forEach(m => {
+            const resp = refMap.respondidoPor[String(m.id)];
+            const prazoFmt = Utils.formatDate(m.data_prazo).split(' ')[0];
+            concHtml += `
+                <div class="flex items-center gap-2 pl-7 py-1 border-l-2 border-green-200 ml-2">
+                    <span class="text-[10px] font-bold text-green-700 bg-green-50 px-2 py-0.5 rounded">${Utils.escapeHtml(m.tipo)}</span>
+                    <span class="text-[10px] text-green-600">Prazo ${prazoFmt}</span>
+                    ${resp ? '<span class="text-[10px] text-green-500">- respondido via ' + Utils.escapeHtml(resp.respostaTipo) + '</span>' : ''}
+                </div>`;
+        });
+        concHtml += '</div>';
+        panel.innerHTML = concHtml;
         panel.classList.remove('hidden');
         return;
     }
 
     let html = '<div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 space-y-3">';
-    html += '<div class="flex items-center gap-2 mb-1">';
+    html += '<div class="flex items-center flex-wrap gap-2 mb-1">';
     html += '<svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
     html += '<h3 class="text-sm font-bold text-slate-800">Prazos Pendentes</h3>';
     html += '<span class="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-bold">' + totalPendentes + ' pendente(s)</span>';
@@ -424,17 +502,21 @@ function renderPrazosPanel(movimentacoes, refMap) {
     // Vencidos
     vencidos.forEach(item => {
         html += `
-            <div class="flex items-center gap-3 p-3 bg-red-50 border border-red-200 rounded-xl animate-pulse">
-                <div class="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+            <div class="flex items-start gap-3 p-3 bg-red-50 border border-red-200 rounded-xl animate-pulse">
+                <div class="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center shrink-0 mt-0.5">
                     <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
                 </div>
                 <div class="flex-1 min-w-0">
-                    <p class="text-xs font-bold text-red-800 uppercase">${Utils.escapeHtml(item.tipo)} - VENCIDO ${Math.abs(item.diffDays)} dia(s)</p>
-                    <p class="text-[11px] text-red-700 truncate">${Utils.escapeHtml(item.descricao.substring(0, 80))}</p>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="text-[10px] font-bold text-white bg-red-600 px-1.5 py-0.5 rounded">${Utils.escapeHtml(item.tipo)}</span>
+                        <span class="text-[10px] font-bold text-red-800">VENCIDO ${Math.abs(item.diffDays)} dia(s)</span>
+                    </div>
+                    <p class="text-[11px] text-red-700 mt-1 line-clamp-2">${Utils.escapeHtml(item.descricao.substring(0, 120))}</p>
+                    <p class="text-[10px] text-red-500 mt-0.5">Prazo: ${item.prazoFmt} | Criado em: ${Utils.formatDate(item.data_movimentacao).split(' ')[0]}</p>
                 </div>
                 <div class="text-right shrink-0">
                     <p class="text-xs font-bold text-red-800">${item.prazoFmt}</p>
-                    <button onclick="responderPrazo('${item.id}')" class="text-[10px] text-red-600 hover:text-red-800 font-bold underline">Responder</button>
+                    <button onclick="responderPrazo('${item.id}')" class="mt-1 text-[10px] text-white bg-red-600 hover:bg-red-700 font-bold px-2.5 py-1 rounded-lg transition-colors">Responder</button>
                 </div>
             </div>`;
     });
@@ -443,17 +525,21 @@ function renderPrazosPanel(movimentacoes, refMap) {
     urgentes.forEach(item => {
         const label = item.diffDays === 0 ? 'HOJE' : 'em ' + item.diffDays + ' dia(s)';
         html += `
-            <div class="flex items-center gap-3 p-3 bg-amber-50 border border-amber-200 rounded-xl">
-                <div class="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+            <div class="flex items-start gap-3 p-3 bg-amber-50 border border-amber-200 rounded-xl">
+                <div class="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center shrink-0 mt-0.5">
                     <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 </div>
                 <div class="flex-1 min-w-0">
-                    <p class="text-xs font-bold text-amber-800 uppercase">${Utils.escapeHtml(item.tipo)} - Vence ${label}</p>
-                    <p class="text-[11px] text-amber-700 truncate">${Utils.escapeHtml(item.descricao.substring(0, 80))}</p>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="text-[10px] font-bold text-white bg-amber-600 px-1.5 py-0.5 rounded">${Utils.escapeHtml(item.tipo)}</span>
+                        <span class="text-[10px] font-bold text-amber-800">Vence ${label}</span>
+                    </div>
+                    <p class="text-[11px] text-amber-700 mt-1 line-clamp-2">${Utils.escapeHtml(item.descricao.substring(0, 120))}</p>
+                    <p class="text-[10px] text-amber-500 mt-0.5">Prazo: ${item.prazoFmt} | Criado em: ${Utils.formatDate(item.data_movimentacao).split(' ')[0]}</p>
                 </div>
                 <div class="text-right shrink-0">
                     <p class="text-xs font-bold text-amber-800">${item.prazoFmt}</p>
-                    <button onclick="responderPrazo('${item.id}')" class="text-[10px] text-amber-600 hover:text-amber-800 font-bold underline">Responder</button>
+                    <button onclick="responderPrazo('${item.id}')" class="mt-1 text-[10px] text-white bg-amber-600 hover:bg-amber-700 font-bold px-2.5 py-1 rounded-lg transition-colors">Responder</button>
                 </div>
             </div>`;
     });
@@ -461,29 +547,54 @@ function renderPrazosPanel(movimentacoes, refMap) {
     // Futuros
     futuros.forEach(item => {
         html += `
-            <div class="flex items-center gap-3 p-2.5 bg-blue-50/50 border border-blue-100 rounded-lg">
-                <div class="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+            <div class="flex items-start gap-3 p-2.5 bg-blue-50/50 border border-blue-100 rounded-lg">
+                <div class="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center shrink-0 mt-0.5">
                     <svg class="w-3 h-3 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 </div>
                 <div class="flex-1 min-w-0">
-                    <p class="text-[11px] font-semibold text-blue-800">${Utils.escapeHtml(item.tipo)} - em ${item.diffDays} dia(s)</p>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="text-[10px] font-bold text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded">${Utils.escapeHtml(item.tipo)}</span>
+                        <span class="text-[11px] font-semibold text-blue-800">em ${item.diffDays} dia(s)</span>
+                    </div>
+                    <p class="text-[10px] text-blue-600 mt-0.5">${Utils.escapeHtml(item.descricao.substring(0, 80))}</p>
                 </div>
                 <p class="text-[11px] font-bold text-blue-700 shrink-0">${item.prazoFmt}</p>
             </div>`;
     });
+
+    // Concluídos - seção compacta no final
+    if (respondidos.length > 0) {
+        html += '<div class="mt-2 pt-3 border-t border-slate-100">';
+        html += '<p class="text-[10px] font-bold text-green-700 uppercase tracking-wider mb-2 flex items-center gap-1">';
+        html += '<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4"></path></svg>';
+        html += 'Prazos Concluídos (' + respondidos.length + ')</p>';
+        respondidos.forEach(m => {
+            const resp = refMap.respondidoPor[String(m.id)];
+            const prazoFmt = Utils.formatDate(m.data_prazo).split(' ')[0];
+            html += `
+                <div class="flex items-center gap-2 py-1 pl-3 border-l-2 border-green-200 mb-1">
+                    <span class="text-[10px] font-bold text-green-700 bg-green-50 px-1.5 py-0.5 rounded">${Utils.escapeHtml(m.tipo)}</span>
+                    <span class="text-[10px] text-green-600 line-through">${prazoFmt}</span>
+                    ${resp ? '<span class="text-[10px] text-green-500">via ' + Utils.escapeHtml(resp.respostaTipo) + ' em ' + Utils.formatDate(resp.respostaData).split(' ')[0] + '</span>' : '<span class="text-[10px] text-green-500">respondido</span>'}
+                </div>`;
+        });
+        html += '</div>';
+    }
 
     html += '</div>';
     panel.innerHTML = html;
     panel.classList.remove('hidden');
 }
 
-// Botão "Responder" no painel de prazos - pré-seleciona a referência
+// Botão "Responder" no painel de prazos - pré-seleciona a referência e mostra caminho
 window.responderPrazo = function(movId) {
     const form = document.getElementById('form-movimentacao');
     const select = document.getElementById('mov-referencia');
 
     if (select && movId) {
         select.value = movId;
+        // Dispara o evento change para mostrar o preview do caminho
+        if (select.onchange) select.onchange();
     }
 
     if (form) {
@@ -627,14 +738,21 @@ function createTimelineItem(mov, refMap, movsById) {
         const resposta = foiRespondido ? refMap.respondidoPor[String(mov.id)] : null;
 
         if (foiRespondido && resposta) {
-            // PRAZO CONCLUÍDO (verde)
+            // PRAZO CONCLUÍDO (verde) - badge permanente e destacado
             prazoHtml = `
-                <div class="mt-3 px-3 py-2 bg-green-50 border border-green-200 text-green-800 rounded-lg flex items-center justify-between gap-2 text-xs font-bold uppercase tracking-wide">
-                    <div class="flex items-center gap-2">
-                        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                        <span>Prazo ${prazoFmt} - CONCLUÍDO</span>
+                <div class="mt-3 px-3 py-2.5 bg-green-50 border-2 border-green-300 text-green-800 rounded-xl shadow-sm">
+                    <div class="flex items-center justify-between gap-2">
+                        <div class="flex items-center gap-2">
+                            <svg class="w-5 h-5 flex-shrink-0 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            <span class="text-xs font-bold uppercase tracking-wide">Prazo ${prazoFmt} - CONCLUÍDO</span>
+                        </div>
+                        <span class="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold border border-green-200">Atendido</span>
                     </div>
-                    <span class="text-[10px] normal-case font-semibold">Respondido via ${Utils.escapeHtml(resposta.respostaTipo)} em ${Utils.formatDate(resposta.respostaData).split(' ')[0]}</span>
+                    <div class="flex items-center gap-1.5 mt-1.5 pl-7 flex-wrap">
+                        <span class="text-[10px] font-semibold text-green-700">Respondido via</span>
+                        <span class="text-[10px] font-bold text-green-800 bg-green-100 px-1.5 py-0.5 rounded border border-green-200">${Utils.escapeHtml(resposta.respostaTipo)}</span>
+                        <span class="text-[10px] text-green-600">em ${Utils.formatDate(resposta.respostaData).split(' ')[0]}</span>
+                    </div>
                 </div>`;
         } else {
             // PRAZO PENDENTE (vermelho/amarelo/azul)
@@ -656,12 +774,17 @@ function createTimelineItem(mov, refMap, movsById) {
             }
 
             prazoHtml = `
-                <div class="mt-3 px-3 py-2 ${colorClass} border rounded-lg flex items-center justify-between gap-2 text-xs font-bold uppercase tracking-wide">
-                    <div class="flex items-center gap-2">
-                        <svg class="w-4 h-4 flex-shrink-0 ${iconPulse}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                        <span>${prazoFmt} - ${statusLabel}</span>
+                <div class="mt-3 px-3 py-2.5 ${colorClass} border-2 rounded-xl shadow-sm">
+                    <div class="flex items-center justify-between gap-2">
+                        <div class="flex items-center gap-2">
+                            <svg class="w-5 h-5 flex-shrink-0 ${iconPulse}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            <div>
+                                <span class="text-xs font-bold uppercase tracking-wide block">${prazoFmt} - ${statusLabel}</span>
+                                <span class="text-[10px] font-medium normal-case opacity-80">${Utils.escapeHtml(mov.tipo)}</span>
+                            </div>
+                        </div>
+                        <button onclick="responderPrazo('${mov.id || ''}')" class="text-[10px] bg-white/80 hover:bg-white px-2.5 py-1 rounded-lg font-bold border border-current/20 transition-colors">Responder</button>
                     </div>
-                    <button onclick="responderPrazo('${mov.id || ''}')" class="text-[10px] underline hover:no-underline opacity-80 hover:opacity-100 normal-case font-semibold">Responder</button>
                 </div>`;
         }
     }
@@ -672,10 +795,20 @@ function createTimelineItem(mov, refMap, movsById) {
         const movOriginal = movsById[String(mov.mov_referencia_id)];
         if (movOriginal) {
             const prazoOriginal = movOriginal.data_prazo ? Utils.formatDate(movOriginal.data_prazo).split(' ')[0] : '';
+            const dataOriginal = movOriginal.data_movimentacao ? Utils.formatDate(movOriginal.data_movimentacao).split(' ')[0] : '';
             referenciaHtml = `
-                <div class="mt-2 mb-1 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-lg flex items-center gap-2 text-[11px] text-emerald-800">
-                    <svg class="w-3.5 h-3.5 shrink-0 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg>
-                    <span class="font-semibold">Em resposta a: ${Utils.escapeHtml(movOriginal.tipo)}${prazoOriginal ? ' (prazo ' + prazoOriginal + ')' : ''}</span>
+                <div class="mt-2 mb-1 px-3 py-2 bg-emerald-50 border-2 border-emerald-300 rounded-xl shadow-sm" style="min-height:auto;">
+                    <div class="flex items-center gap-2 text-[11px] text-emerald-800 mb-1">
+                        <svg class="w-4 h-4 shrink-0 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg>
+                        <span class="font-bold uppercase tracking-wide text-emerald-700">Em Resposta A:</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 flex-wrap pl-6">
+                        <span class="text-[10px] font-bold text-slate-700 bg-white px-2 py-0.5 rounded border border-slate-200">${Utils.escapeHtml(movOriginal.tipo)}</span>
+                        ${prazoOriginal ? '<span class="text-[10px] text-slate-500">(prazo ' + prazoOriginal + ')</span>' : ''}
+                        ${dataOriginal ? '<span class="text-[10px] text-slate-400">de ' + dataOriginal + '</span>' : ''}
+                        <svg class="w-3 h-3 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
+                        <span class="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-300">${Utils.escapeHtml(mov.tipo)}</span>
+                    </div>
                 </div>`;
         }
     }
@@ -767,6 +900,14 @@ async function handleMovimentacaoSubmit(e) {
 
     // --- CENÁRIO 1: UPLOAD ---
     if (fileInput.files.length > 0) {
+        // Salva referência local para o cenário de upload também
+        if (referenciaId) {
+            localReferences[String(referenciaId)] = {
+                respostaId: 'local_' + Date.now(),
+                respostaData: new Date().toISOString(),
+                respostaTipo: tipo
+            };
+        }
         const file = fileInput.files[0];
         try {
             if (file.type.startsWith('image/')) {
@@ -811,6 +952,15 @@ async function handleMovimentacaoSubmit(e) {
         mov_referencia_id: referenciaId || null
     };
 
+    // Salva referência local para persistir imediatamente na sessão
+    if (referenciaId) {
+        localReferences[String(referenciaId)] = {
+            respostaId: 'local_' + Date.now(),
+            respostaData: new Date().toISOString(),
+            respostaTipo: tipo
+        };
+    }
+
     const container = document.getElementById('timeline-container');
     const emptyMsg = document.getElementById('empty-msg');
     if (emptyMsg) emptyMsg.remove();
@@ -825,6 +975,10 @@ async function handleMovimentacaoSubmit(e) {
     else container.appendChild(newItem);
 
     if (novoStatus) updateStatusUI(novoStatus);
+
+    // Re-renderiza imediatamente o painel de prazos e dropdown com a referência local
+    renderPrazosPanel(currentMovimentacoes, tempRefMap);
+    populateReferenciaDropdown(currentMovimentacoes, tempRefMap);
 
     Utils.showToast("Registrado!", "success");
     resetForm();
@@ -923,7 +1077,17 @@ window.exportarRelatorio = function() {
         let refStr = '';
         if (mov.mov_referencia_id && movsById[String(mov.mov_referencia_id)]) {
             const orig = movsById[String(mov.mov_referencia_id)];
-            refStr = '<br><em style="color:#059669;">Em resposta a: ' + Utils.escapeHtml(orig.tipo) + '</em>';
+            const prazoRef = orig.data_prazo ? Utils.formatDate(orig.data_prazo).split(' ')[0] : '';
+            const dataRef = orig.data_movimentacao ? Utils.formatDate(orig.data_movimentacao).split(' ')[0] : '';
+            refStr = '<br><div style="margin:6px 0;padding:8px 12px;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;">';
+            refStr += '<strong style="color:#059669;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Caminho da Resposta:</strong><br>';
+            refStr += '<span style="display:inline-block;margin-top:4px;padding:2px 8px;background:#fff;border:1px solid #d1d5db;border-radius:4px;font-size:11px;color:#374151;">' + Utils.escapeHtml(orig.tipo) + '</span>';
+            if (prazoRef) refStr += ' <span style="font-size:11px;color:#6b7280;">(prazo ' + prazoRef + ')</span>';
+            if (dataRef) refStr += ' <span style="font-size:11px;color:#9ca3af;">de ' + dataRef + '</span>';
+            refStr += ' <span style="color:#059669;font-weight:bold;">&rarr;</span> ';
+            refStr += '<span style="display:inline-block;padding:2px 8px;background:#d1fae5;border:1px solid #6ee7b7;border-radius:4px;font-size:11px;color:#065f46;font-weight:bold;">' + Utils.escapeHtml(mov.tipo) + '</span>';
+            refStr += ' <span style="font-size:11px;color:#059669;">(esta resposta)</span>';
+            refStr += '</div>';
         }
 
         let anexoStr = '';
@@ -1077,9 +1241,11 @@ function resetForm() {
     if(fileName) fileName.textContent = "Clique para anexar PDF ou Imagem";
     if(icon) icon.classList.remove('text-blue-500');
 
-    // Reset referência
+    // Reset referência e preview do caminho
     const refSelect = document.getElementById('mov-referencia');
     if (refSelect) refSelect.value = '';
+    const infoEl = document.getElementById('mov-referencia-info');
+    if (infoEl) infoEl.innerHTML = '';
 }
 
 function setupFileInput() {
