@@ -26,6 +26,10 @@ const API = {
     // PRELOAD: Pré-carrega dados de páginas adjacentes em background
     // =========================================================================
     preloadAdjacentPages: function() {
+        // Não precarrega se não estiver logado (evita erro "Sessão expirada" no login)
+        var token = sessionStorage.getItem(CONFIG.STORAGE_KEYS.TOKEN);
+        if (!token) return;
+
         var currentPage = window.location.pathname.split('/').pop() || 'dashboard.html';
 
         // Preload silencioso - não bloqueia UI, não mostra loading

@@ -175,13 +175,28 @@
         if (cpfInput) {
             cpfInput.addEventListener('input', function (e) {
                 var v = e.target.value.replace(/\D/g, '');
-                if (v.length > 11) v = v.substring(0, 11);
-                if (v.length > 9) {
-                    v = v.replace(/(\d{3})(\d{3})(\d{3})(\d{1,2})/, '$1.$2.$3-$4');
-                } else if (v.length > 6) {
-                    v = v.replace(/(\d{3})(\d{3})(\d{1,3})/, '$1.$2.$3');
-                } else if (v.length > 3) {
-                    v = v.replace(/(\d{3})(\d{1,3})/, '$1.$2');
+                if (v.length <= 11) {
+                    // Mascara CPF
+                    if (v.length > 11) v = v.substring(0, 11);
+                    if (v.length > 9) {
+                        v = v.replace(/(\d{3})(\d{3})(\d{3})(\d{1,2})/, '$1.$2.$3-$4');
+                    } else if (v.length > 6) {
+                        v = v.replace(/(\d{3})(\d{3})(\d{1,3})/, '$1.$2.$3');
+                    } else if (v.length > 3) {
+                        v = v.replace(/(\d{3})(\d{1,3})/, '$1.$2');
+                    }
+                } else {
+                    // Mascara CNPJ
+                    if (v.length > 14) v = v.substring(0, 14);
+                    if (v.length > 12) {
+                        v = v.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{1,2})/, '$1.$2.$3/$4-$5');
+                    } else if (v.length > 8) {
+                        v = v.replace(/(\d{2})(\d{3})(\d{3})(\d{1,4})/, '$1.$2.$3/$4');
+                    } else if (v.length > 5) {
+                        v = v.replace(/(\d{2})(\d{3})(\d{1,3})/, '$1.$2.$3');
+                    } else if (v.length > 2) {
+                        v = v.replace(/(\d{2})(\d{1,3})/, '$1.$2');
+                    }
                 }
                 e.target.value = v;
             });
@@ -628,14 +643,20 @@
             return;
         }
 
-        if (!editId && cpfRaw.length !== 11) {
-            Utils.showToast('CPF deve ter 11 digitos.', 'warning');
+        if (!editId && cpfRaw.length !== 11 && cpfRaw.length !== 14) {
+            Utils.showToast('CPF deve ter 11 digitos ou CNPJ deve ter 14 digitos.', 'warning');
             document.getElementById('cliente-cpf').focus();
             return;
         }
 
-        if (!editId && !Utils.validarCPF(cpfRaw)) {
+        if (!editId && cpfRaw.length === 11 && !Utils.validarCPF(cpfRaw)) {
             Utils.showToast('CPF invalido. Verifique os digitos.', 'warning');
+            document.getElementById('cliente-cpf').focus();
+            return;
+        }
+
+        if (!editId && cpfRaw.length === 14 && !Utils.validarCNPJ(cpfRaw)) {
+            Utils.showToast('CNPJ invalido. Verifique os digitos.', 'warning');
             document.getElementById('cliente-cpf').focus();
             return;
         }
@@ -714,7 +735,9 @@
         document.getElementById('detalhe-avatar').textContent = getIniciais(nome);
         document.getElementById('detalhe-nome').textContent = nome;
         document.getElementById('detalhe-email').textContent = cliente.email || '-';
-        document.getElementById('detalhe-cpf').textContent = 'CPF: ' + formatarCPF(cliente.cpf);
+        var docDigits = String(cliente.cpf || '').replace(/\D/g, '');
+        var docLabel = docDigits.length === 14 ? 'CNPJ: ' : 'CPF: ';
+        document.getElementById('detalhe-cpf').textContent = docLabel + formatarCPF(cliente.cpf);
         document.getElementById('detalhe-tel').textContent = 'Tel: ' + formatarTelefone(cliente.telefone);
 
         var statusEl = document.getElementById('detalhe-status');

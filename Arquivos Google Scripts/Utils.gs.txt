@@ -192,6 +192,69 @@ var Utils = {
   },
 
   // ==========================================================================
+  // CNPJ
+  // ==========================================================================
+
+  /**
+   * Normaliza CNPJ para string com 14 dígitos.
+   * @param {any} cnpj
+   * @returns {string}
+   */
+  normalizarCNPJ: function(cnpj) {
+    if (cnpj === null || cnpj === undefined || cnpj === '') return '';
+    var s = String(cnpj).replace(/\D/g, '');
+    if (!s) return '';
+    while (s.length < 14) s = '0' + s;
+    if (s.length > 14) s = s.substring(s.length - 14);
+    return s;
+  },
+
+  /**
+   * Valida CNPJ (algoritmo oficial).
+   * @param {any} cnpj
+   * @returns {boolean}
+   */
+  isValidCNPJ: function(cnpj) {
+    var d = this.normalizarCNPJ(cnpj);
+    if (d.length !== 14) return false;
+    if (/^(\d)\1{13}$/.test(d)) return false;
+
+    var t = d.length - 2;
+    var n = d.substring(0, t);
+    var digitos = d.substring(t);
+    var soma = 0, pos = t - 7, i;
+
+    for (i = t; i >= 1; i--) {
+      soma += parseInt(n.charAt(t - i), 10) * pos--;
+      if (pos < 2) pos = 9;
+    }
+    var res = soma % 11 < 2 ? 0 : 11 - (soma % 11);
+    if (res !== parseInt(digitos.charAt(0), 10)) return false;
+
+    t++;
+    n = d.substring(0, t);
+    soma = 0;
+    pos = t - 7;
+    for (i = t; i >= 1; i--) {
+      soma += parseInt(n.charAt(t - i), 10) * pos--;
+      if (pos < 2) pos = 9;
+    }
+    res = soma % 11 < 2 ? 0 : 11 - (soma % 11);
+    return res === parseInt(digitos.charAt(1), 10);
+  },
+
+  /**
+   * Formata CNPJ para XX.XXX.XXX/XXXX-XX.
+   * @param {any} cnpj
+   * @returns {string}
+   */
+  formatCNPJ: function(cnpj) {
+    var d = this.normalizarCNPJ(cnpj);
+    if (d.length !== 14) return '';
+    return d.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+  },
+
+  // ==========================================================================
   // Helpers gerais
   // ==========================================================================
 

@@ -29,8 +29,13 @@ var AdvogadoService = {
 
     var usuarios = Database.read(CONFIG.SHEET_NAMES.USUARIOS);
 
+    // PRESIDENTE vê ADMIN + ADVOGADO; ADMIN vê apenas ADVOGADO
     var advogados = usuarios.filter(function(u) {
-      return (u.perfil || '').toUpperCase() === ENUMS.PERFIL.ADVOGADO;
+      var p = (u.perfil || '').toUpperCase();
+      if (perfil === ENUMS.PERFIL.PRESIDENTE) {
+        return p === ENUMS.PERFIL.ADVOGADO || p === ENUMS.PERFIL.ADMIN;
+      }
+      return p === ENUMS.PERFIL.ADVOGADO;
     });
 
     // Retorna sem expor a senha
@@ -80,15 +85,24 @@ var AdvogadoService = {
 
     var senhaHash = AuthService._gerarHashSenha(senha);
 
+    // PRESIDENTE pode criar ADMIN ou ADVOGADO; ADMIN cria apenas ADVOGADO
+    var perfilNovo = ENUMS.PERFIL.ADVOGADO;
+    if (perfil === ENUMS.PERFIL.PRESIDENTE && payload.perfil_usuario) {
+      var perfilSolicitado = String(payload.perfil_usuario).toUpperCase();
+      if (perfilSolicitado === ENUMS.PERFIL.ADMIN || perfilSolicitado === ENUMS.PERFIL.ADVOGADO) {
+        perfilNovo = perfilSolicitado;
+      }
+    }
+
     var novoAdvogado = Database.create(CONFIG.SHEET_NAMES.USUARIOS, {
       nome: nome,
       email: email,
       senha: senhaHash,
-      perfil: ENUMS.PERFIL.ADVOGADO,
+      perfil: perfilNovo,
       ativo: true
     });
 
-    Utils.logAction(auth.user.email, 'CRIAR_ADVOGADO', 'Advogado criado: ' + email);
+    Utils.logAction(auth.user.email, 'CRIAR_USUARIO', perfilNovo + ' criado: ' + email);
 
     return {
       id: novoAdvogado.id,
@@ -122,8 +136,18 @@ var AdvogadoService = {
     var advogado = Database.findById(CONFIG.SHEET_NAMES.USUARIOS, advogadoId);
     if (!advogado) throw new Error('Advogado não encontrado.');
 
-    if ((advogado.perfil || '').toUpperCase() !== ENUMS.PERFIL.ADVOGADO) {
-      throw new Error('Usuário não é um advogado.');
+    // Hierarquia: PRESIDENTE > ADMIN > ADVOGADO
+    var perfilAlvo = (advogado.perfil || '').toUpperCase();
+    if (perfil === ENUMS.PERFIL.PRESIDENTE) {
+      // PRESIDENTE pode editar ADMIN e ADVOGADO (não pode editar outro PRESIDENTE)
+      if (perfilAlvo !== ENUMS.PERFIL.ADVOGADO && perfilAlvo !== ENUMS.PERFIL.ADMIN) {
+        throw new Error('Não é possível editar este usuário.');
+      }
+    } else {
+      // ADMIN só pode editar ADVOGADO
+      if (perfilAlvo !== ENUMS.PERFIL.ADVOGADO) {
+        throw new Error('Apenas o Presidente pode editar administradores.');
+      }
     }
 
     var updates = {};
@@ -154,10 +178,18 @@ var AdvogadoService = {
       updates.senha = AuthService._gerarHashSenha(String(payload.senha));
     }
 
+    // PRESIDENTE pode alterar perfil entre ADMIN e ADVOGADO
+    if (perfil === ENUMS.PERFIL.PRESIDENTE && payload.perfil_usuario !== undefined && payload.perfil_usuario !== null) {
+      var novoPerfil = String(payload.perfil_usuario).toUpperCase();
+      if (novoPerfil === ENUMS.PERFIL.ADMIN || novoPerfil === ENUMS.PERFIL.ADVOGADO) {
+        updates.perfil = novoPerfil;
+      }
+    }
+
     Database.update(CONFIG.SHEET_NAMES.USUARIOS, advogadoId, updates);
 
-    Utils.logAction(auth.user.email, 'ATUALIZAR_ADVOGADO',
-      'Advogado atualizado: ' + advogadoId + ' (' + (advogado.email || '') + ')');
+    Utils.logAction(auth.user.email, 'ATUALIZAR_USUARIO',
+      'Usuário atualizado: ' + advogadoId + ' (' + (advogado.email || '') + ')');
 
     return { atualizado: true };
   },
