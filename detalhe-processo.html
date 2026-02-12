@@ -230,17 +230,6 @@
                     </div>
                 </div>
 
-                <!-- Barra de Progresso Visual -->
-                <div class="px-6 py-4 border-t border-slate-100">
-                    <h4 class="text-[10px] font-bold text-slate-400 uppercase mb-3 tracking-wider">Fase Atual</h4>
-                    <div class="relative">
-                        <div class="absolute top-1/2 left-0 w-full h-1 bg-slate-100 rounded-full -translate-y-1/2 z-0"></div>
-                        <div id="stepper-bar" class="absolute top-1/2 left-0 h-1 bg-blue-500 rounded-full -translate-y-1/2 z-0 progress-bar-fill" style="width: 0%"></div>
-                        <div class="relative z-10 flex justify-between w-full" id="stepper-container">
-                            <!-- JS vai preencher -->
-                        </div>
-                    </div>
-                </div>
             </div>
 
             <!-- ============================================================ -->
@@ -268,14 +257,14 @@
                 </div>
             </div>
 
+            <!-- Painel de Prazos Ativos (full width, acima do grid) -->
+            <div id="prazos-panel" class="hidden mb-6"></div>
+
             <!-- Layout Grid -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-                <!-- Coluna Esquerda: Timeline -->
-                <div class="lg:col-span-2 space-y-6">
-
-                    <!-- Painel de Prazos Ativos (preenchido pelo JS) -->
-                    <div id="prazos-panel" class="hidden"></div>
+                <!-- Coluna Esquerda: Timeline (aparece depois do form no mobile) -->
+                <div class="lg:col-span-2 space-y-6 order-2 lg:order-1">
 
                     <div class="flex items-center justify-between px-2">
                         <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
@@ -307,8 +296,8 @@
                     </div>
                 </div>
 
-                <!-- Coluna Direita: Formulário de Ação -->
-                <div class="lg:col-span-1 space-y-6" id="form-section">
+                <!-- Coluna Direita: Formulário de Ação (aparece primeiro no mobile) -->
+                <div class="lg:col-span-1 space-y-6 order-1 lg:order-2" id="form-section">
 
                     <!-- Notas Internas do Advogado -->
                     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
@@ -320,7 +309,7 @@
                             <span id="notas-status" class="text-[10px] text-slate-400"></span>
                         </div>
                         <textarea id="notas-internas" rows="3" placeholder="Anote lembretes, estratégias ou observações pessoais sobre este processo..." class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-amber-50/50 focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent resize-none placeholder-slate-400"></textarea>
-                        <p class="text-[10px] text-slate-400 mt-1">Salvo automaticamente no seu navegador (privado)</p>
+                        <p class="text-[10px] text-slate-400 mt-1">Sincronizado automaticamente - visível para toda a equipe</p>
                     </div>
 
                     <div class="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 lg:sticky lg:top-4">

@@ -117,6 +117,41 @@
             });
         }
 
+        // Toggle notificações de movimentação
+        var toggleNotif = document.getElementById('toggle-notificacao');
+        if (toggleNotif) {
+            toggleNotif.addEventListener('change', function () {
+                if (!clienteDetalheAtual || !clienteDetalheAtual.id) return;
+                var ativo = toggleNotif.checked;
+                var label = document.getElementById('notif-status-label');
+
+                if (label) label.textContent = 'Salvando...';
+                toggleNotif.disabled = true;
+
+                API.call('atualizarCliente', {
+                    cliente_id: clienteDetalheAtual.id,
+                    notificacoes_ativas: ativo ? 'SIM' : 'NAO'
+                }, 'POST', true).then(function () {
+                    clienteDetalheAtual.notificacoes_ativas = ativo ? 'SIM' : 'NAO';
+                    if (label) label.textContent = ativo ? 'Ativadas - e-mail a cada movimentação' : 'Desativadas';
+                    Utils.showToast(ativo ? 'Notificações ativadas!' : 'Notificações desativadas.', 'success');
+
+                    // Atualiza na lista local
+                    clientes.forEach(function (c) {
+                        if (String(c.id) === String(clienteDetalheAtual.id)) {
+                            c.notificacoes_ativas = ativo ? 'SIM' : 'NAO';
+                        }
+                    });
+                }).catch(function (err) {
+                    toggleNotif.checked = !ativo;
+                    if (label) label.textContent = 'Erro ao salvar';
+                    Utils.showToast('Erro ao atualizar notificações: ' + (err.message || ''), 'error');
+                }).finally(function () {
+                    toggleNotif.disabled = false;
+                });
+            });
+        }
+
         // Tecla Escape fecha modais
         document.addEventListener('keydown', function (e) {
             if (e.key === 'Escape') {
@@ -684,6 +719,17 @@
             criadoEl.textContent = 'Cadastrado em ' + Utils.formatDate(cliente.created_at);
         } else {
             criadoEl.textContent = '';
+        }
+
+        // Configurar toggle de notificações
+        var toggleNotif = document.getElementById('toggle-notificacao');
+        var notifLabel = document.getElementById('notif-status-label');
+        if (toggleNotif) {
+            var notifAtiva = String(cliente.notificacoes_ativas || 'SIM').toUpperCase() !== 'NAO';
+            toggleNotif.checked = notifAtiva;
+            if (notifLabel) {
+                notifLabel.textContent = notifAtiva ? 'Ativadas - e-mail a cada movimentação' : 'Desativadas';
+            }
         }
 
         // Carregar processos do cliente
