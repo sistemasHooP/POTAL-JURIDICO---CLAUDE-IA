@@ -229,24 +229,21 @@ function loadProcessoDetalhe(id) {
 
         renderClienteInfo(p);
 
+        // Drive link
         const btnDrive = document.getElementById('btn-drive');
-        const btnDriveIframe = document.getElementById('btn-drive-iframe');
         if (btnDrive) {
             if (p.link_pasta) {
                 btnDrive.href = p.link_pasta;
                 btnDrive.classList.remove('hidden');
                 btnDrive.classList.add('inline-flex');
-                // Habilita botão de iframe para ver arquivos sem sair
-                if (btnDriveIframe) {
-                    btnDriveIframe.classList.remove('hidden');
-                    btnDriveIframe.classList.add('inline-flex');
-                    btnDriveIframe.dataset.driveUrl = p.link_pasta;
-                }
             } else {
                 btnDrive.classList.add('hidden');
-                if (btnDriveIframe) btnDriveIframe.classList.add('hidden');
             }
         }
+
+        // Data de entrada duplicada no info grid
+        const elDataInfo = document.getElementById('proc-data-info');
+        if (elDataInfo) elDataInfo.textContent = Utils.formatDate(p.data_entrada).split(' ')[0];
 
         // Build reference map para saber quais prazos já foram respondidos
         const refMap = buildReferenceMap(movs);
@@ -255,6 +252,7 @@ function loadProcessoDetalhe(id) {
         renderTimeline(movs, refMap);
         renderPrazosPanel(movs, refMap);
         populateReferenciaDropdown(movs, refMap);
+        renderDocumentos(movs, p.link_pasta);
 
         // Contador de movimentações
         const countBadge = document.getElementById('mov-count-badge');
@@ -295,7 +293,7 @@ function renderClienteInfo(processo) {
         return;
     }
 
-    API.call('buscarClientePorIdGestor', { cliente_id: clienteId }, 'POST', true)
+    API.clientes.buscarPorId(clienteId)
     .then(cliente => {
         if (cliente && cliente.nome_completo) {
             showCliente(cliente.nome_completo, (cliente.email || '') + (cliente.telefone ? ' | ' + cliente.telefone : ''));
@@ -1329,65 +1327,92 @@ window.scrollToForm = function() {
 };
 
 // =============================================================================
-// DRIVE IFRAME VIEWER - Ver arquivos sem sair da página
+// PAINEL DE DOCUMENTOS - Lista anexos das movimentações (sem precisar login Google)
 // =============================================================================
-let driveViewerOpen = false;
+let documentosPanelOpen = false;
 
-window.toggleDriveViewer = function() {
-    const section = document.getElementById('drive-viewer-section');
-    const iframe = document.getElementById('drive-iframe');
-    const loader = document.getElementById('drive-iframe-loader');
+function renderDocumentos(movimentacoes, linkPasta) {
+    const listEl = document.getElementById('documentos-list');
+    const badgeEl = document.getElementById('docs-count-badge');
+    if (!listEl) return;
+
+    // Coleta todos os anexos das movimentações
+    const docs = [];
+    if (movimentacoes) {
+        movimentacoes.forEach(function(mov) {
+            if (mov.anexo_link) {
+                docs.push({
+                    nome: mov.anexo_nome || 'Documento',
+                    url: mov.anexo_link,
+                    tipo: mov.tipo,
+                    data: mov.data_movimentacao
+                });
+            }
+        });
+    }
+
+    // Atualiza badge de contagem
+    if (badgeEl) {
+        badgeEl.textContent = docs.length;
+        if (docs.length > 0) {
+            badgeEl.className = 'ml-1.5 text-[9px] font-bold bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded-full min-w-[18px] text-center';
+        }
+    }
+
+    if (docs.length === 0 && !linkPasta) {
+        listEl.innerHTML = '<div class="px-5 py-8 text-center"><svg class="w-10 h-10 text-slate-200 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg><p class="text-sm text-slate-400 font-medium">Nenhum documento anexado</p><p class="text-[11px] text-slate-300 mt-1">Anexe documentos ao criar movimentações</p></div>';
+        return;
+    }
+
+    var html = '';
+
+    // Link para pasta do Drive (se houver)
+    if (linkPasta) {
+        html += '<a href="' + Utils.escapeHtml(linkPasta) + '" target="_blank" class="flex items-center gap-3 px-5 py-3.5 hover:bg-blue-50/50 transition-colors group">';
+        html += '<div class="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0 group-hover:bg-blue-100 transition-colors"><svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg></div>';
+        html += '<div class="flex-1 min-w-0"><p class="text-sm font-semibold text-slate-700 group-hover:text-blue-700 transition-colors">Pasta do Processo (Google Drive)</p><p class="text-[10px] text-slate-400">Clique para abrir todos os arquivos no Drive</p></div>';
+        html += '<svg class="w-4 h-4 text-slate-300 group-hover:text-blue-400 shrink-0 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>';
+        html += '</a>';
+    }
+
+    // Lista de documentos individuais
+    docs.forEach(function(doc) {
+        var isPdf = doc.nome.toLowerCase().includes('.pdf');
+        var isImage = /\.(jpg|jpeg|png|gif|webp|bmp)/i.test(doc.nome);
+        var iconColor = isPdf ? 'text-red-500 bg-red-50' : isImage ? 'text-purple-500 bg-purple-50' : 'text-slate-500 bg-slate-50';
+        var iconSvg = isPdf
+            ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>'
+            : isImage
+            ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>'
+            : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path>';
+
+        var safeUrl = doc.url.replace(/'/g, "\\'");
+        var safeNome = doc.nome.replace(/'/g, "\\'");
+        var dataFmt = doc.data ? Utils.formatDate(doc.data).split(' ')[0] : '';
+
+        html += '<div class="flex items-center gap-3 px-5 py-3 hover:bg-slate-50/80 transition-colors animate-slide-down cursor-pointer" onclick="viewFile(\'' + safeUrl + '\', \'' + safeNome + '\')">';
+        html += '<div class="w-10 h-10 rounded-xl ' + iconColor + ' flex items-center justify-center shrink-0"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">' + iconSvg + '</svg></div>';
+        html += '<div class="flex-1 min-w-0"><p class="text-sm font-medium text-slate-700 truncate">' + Utils.escapeHtml(doc.nome) + '</p>';
+        html += '<p class="text-[10px] text-slate-400 truncate">' + Utils.escapeHtml(doc.tipo) + (dataFmt ? ' &middot; ' + dataFmt : '') + '</p></div>';
+        html += '<button class="text-[10px] font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-lg transition-colors shrink-0">Abrir</button>';
+        html += '</div>';
+    });
+
+    listEl.innerHTML = html;
+}
+
+window.toggleDocumentos = function() {
+    var section = document.getElementById('documentos-section');
     if (!section) return;
 
-    driveViewerOpen = !driveViewerOpen;
+    documentosPanelOpen = !documentosPanelOpen;
 
-    if (driveViewerOpen) {
+    if (documentosPanelOpen) {
         section.classList.remove('hidden');
-
-        // Extrai folder ID da URL do Drive
-        const btnIframe = document.getElementById('btn-drive-iframe');
-        const driveUrl = btnIframe ? btnIframe.dataset.driveUrl : '';
-        const folderId = extractDriveFolderId(driveUrl);
-
-        if (folderId && iframe) {
-            iframe.src = 'https://drive.google.com/embeddedfolderview?id=' + folderId + '#list';
-            iframe.onload = function() {
-                if (loader) loader.classList.add('hidden');
-                iframe.classList.remove('hidden');
-            };
-            // Timeout: se não carregar em 5s, mostra mesmo assim
-            setTimeout(function() {
-                if (loader) loader.classList.add('hidden');
-                iframe.classList.remove('hidden');
-            }, 5000);
-        } else {
-            // Sem folder ID, abre link direto
-            if (loader) loader.innerHTML = '<p class="text-sm text-slate-500 py-8">Pasta não disponível para visualização inline. Use o botão "Drive" acima.</p>';
-        }
-
-        // Scroll suave até o viewer
         setTimeout(function() {
             section.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }, 100);
     } else {
         section.classList.add('hidden');
-        if (iframe) iframe.src = '';
-        if (loader) {
-            loader.classList.remove('hidden');
-            loader.innerHTML = '<div class="animate-spin rounded-full h-8 w-8 border-4 border-slate-200 border-t-indigo-500"></div><p class="ml-3 text-sm text-slate-500">Carregando arquivos...</p>';
-        }
     }
 };
-
-function extractDriveFolderId(url) {
-    if (!url) return null;
-    // Formatos comuns:
-    // https://drive.google.com/drive/folders/XXXXXXX
-    // https://drive.google.com/drive/folders/XXXXXXX?usp=sharing
-    var match = url.match(/\/folders\/([a-zA-Z0-9_-]+)/);
-    if (match) return match[1];
-    // Formato: id=XXXXXXX
-    match = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-    if (match) return match[1];
-    return null;
-}
