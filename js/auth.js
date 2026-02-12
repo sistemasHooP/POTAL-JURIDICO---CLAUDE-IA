@@ -96,9 +96,22 @@ const Auth = {
         if (user) {
             const nameEl = document.getElementById('user-name-display');
             const profileEl = document.getElementById('user-profile-display');
-            
+
             if (nameEl) nameEl.textContent = user.nome;
             if (profileEl) profileEl.textContent = user.perfil;
+
+            // Exibe/oculta itens de menu exclusivos para admin
+            const perfil = (user.perfil || '').toUpperCase();
+            const isAdmin = perfil === 'ADMIN' || perfil === 'PRESIDENTE';
+            document.querySelectorAll('[data-admin-only]').forEach(function(el) {
+                if (isAdmin) {
+                    el.classList.remove('hidden');
+                    el.classList.add('flex');
+                } else {
+                    el.classList.add('hidden');
+                    el.classList.remove('flex');
+                }
+            });
         }
     }
 };

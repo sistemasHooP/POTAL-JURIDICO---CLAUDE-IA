@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advogados - Sistema Jurídico RPPS</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Fonte Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <!-- CSS Personalizado -->
+    <link rel="stylesheet" href="css/style.css">
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-slide-down { animation: slideDown 0.2s ease-out; }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen pb-20 md:pb-0">
+
+    <!-- Navbar Mobile (Topo) -->
+    <nav class="bg-slate-900 text-white p-4 shadow-lg sticky top-0 z-40 md:hidden flex justify-between items-center">
+        <div class="flex items-center space-x-2">
+            <div class="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"></path></svg>
+            </div>
+            <span class="font-bold text-lg tracking-tight">Advogados</span>
+        </div>
+        <button id="mobile-logout-btn" class="text-slate-300 hover:text-white">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+        </button>
+    </nav>
+
+    <div class="flex h-screen overflow-hidden">
+
+        <!-- ============================================================ -->
+        <!-- SIDEBAR PROFISSIONAL (Desktop) -->
+        <!-- ============================================================ -->
+        <aside class="hidden md:flex flex-col w-72 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 text-white h-full shrink-0 shadow-2xl z-20">
+            <!-- Logo -->
+            <div class="px-6 py-5 border-b border-white/5">
+                <h1 class="text-xl font-black flex items-center gap-2.5 tracking-tight">
+                    <svg class="w-7 h-7 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"></path></svg>
+                    RPPS Jurídico
+                </h1>
+                <p class="text-[10px] text-slate-500 mt-0.5 pl-[38px] uppercase tracking-[0.2em]">Sistema v2.0</p>
+            </div>
+
+            <!-- Perfil -->
+            <div class="px-5 py-4 border-b border-white/5">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center font-bold text-sm text-white shadow-lg shadow-blue-900/30">
+                        <span id="user-initials">U</span>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-sm font-semibold truncate" id="user-name-display">Carregando...</p>
+                        <p class="text-[10px] text-blue-400 uppercase tracking-wider font-medium" id="user-profile-display">...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navegação Principal -->
+            <nav class="flex-1 p-3 space-y-1 overflow-y-auto">
+                <p class="text-[9px] font-bold text-slate-600 uppercase tracking-[0.2em] px-3 mb-2">Menu</p>
+                <a href="dashboard.html" class="flex items-center gap-3 px-3.5 py-2.5 text-slate-400 hover:bg-white/5 hover:text-white rounded-xl transition-all text-sm">
+                    <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+                    Dashboard
+                </a>
+                <a href="processos.html" class="flex items-center gap-3 px-3.5 py-2.5 text-slate-400 hover:bg-white/5 hover:text-white rounded-xl transition-all text-sm">
+                    <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    Processos
+                </a>
+                <a href="clientes.html" class="flex items-center gap-3 px-3.5 py-2.5 text-slate-400 hover:bg-white/5 hover:text-white rounded-xl transition-all text-sm">
+                    <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5-2.83M9 20H4v-2a3 3 0 015-2.83M9 20h6M9 20v-2a3 3 0 016 0v2M12 7a3 3 0 110 6 3 3 0 010-6z"></path></svg>
+                    Clientes
+                </a>
+                <a href="novo-processo.html" class="flex items-center gap-3 px-3.5 py-2.5 text-slate-400 hover:bg-white/5 hover:text-white rounded-xl transition-all text-sm">
+                    <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    Novo Processo
+                </a>
+                <a href="advogados.html" data-admin-only class="flex items-center gap-3 px-3.5 py-2.5 bg-blue-600/20 text-blue-300 rounded-xl transition-all text-sm font-medium border border-blue-500/20">
+                    <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                    Advogados
+                </a>
+            </nav>
+
+            <!-- Logout -->
+            <div class="p-3 border-t border-white/5">
+                <button id="desktop-logout-btn" class="flex items-center gap-3 w-full px-3.5 py-2.5 text-slate-500 hover:text-red-400 hover:bg-red-400/5 rounded-xl transition-all text-sm">
+                    <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                    Sair do Sistema
+                </button>
+            </div>
+        </aside>
+
+        <!-- ============================================================ -->
+        <!-- CONTEÚDO PRINCIPAL -->
+        <!-- ============================================================ -->
+        <main class="flex-1 h-full overflow-y-auto bg-slate-50 p-4 md:p-8">
+
+            <!-- Header da Página -->
+            <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-800">Gerenciamento de Advogados</h2>
+                    <p class="text-slate-500 text-sm mt-0.5">Cadastre, edite e gerencie permissões dos advogados do escritório.</p>
+                </div>
+                <button onclick="abrirModalCadastro()" class="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-sm font-bold rounded-xl shadow-lg shadow-blue-600/25 transition-all active:scale-[0.97]">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
+                    Novo Advogado
+                </button>
+            </div>
+
+            <!-- Cards de Estatísticas -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100 flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center">
+                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total</p>
+                        <p id="stat-total" class="text-2xl font-bold text-slate-800">-</p>
+                    </div>
+                </div>
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100 flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-green-50 flex items-center justify-center">
+                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Ativos</p>
+                        <p id="stat-ativos" class="text-2xl font-bold text-green-600">-</p>
+                    </div>
+                </div>
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100 flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center">
+                        <svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Inativos</p>
+                        <p id="stat-inativos" class="text-2xl font-bold text-red-500">-</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabela de Advogados -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+                <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+                    <h3 class="font-bold text-slate-800 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
+                        Lista de Advogados
+                    </h3>
+                    <div class="relative">
+                        <input type="text" id="busca-advogado" placeholder="Buscar..." class="pl-8 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-48">
+                        <svg class="w-4 h-4 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm text-slate-600">
+                        <thead class="bg-slate-50 text-xs uppercase text-slate-500 font-semibold">
+                            <tr>
+                                <th class="px-5 py-3.5">Advogado</th>
+                                <th class="px-5 py-3.5 hidden sm:table-cell">Email</th>
+                                <th class="px-5 py-3.5">Status</th>
+                                <th class="px-5 py-3.5 hidden md:table-cell">Processos</th>
+                                <th class="px-5 py-3.5 text-right">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-50" id="advogados-list">
+                            <tr>
+                                <td colspan="5" class="px-5 py-12 text-center text-slate-400">
+                                    <div class="flex justify-center mb-2">
+                                        <svg class="w-6 h-6 animate-spin text-slate-300" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                    </div>
+                                    Carregando advogados...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="h-20 md:h-0"></div>
+
+        </main>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- MODAL: Cadastrar/Editar Advogado -->
+    <!-- ============================================================ -->
+    <div id="modal-advogado" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4" style="background:rgba(15,23,42,0.5);backdrop-filter:blur(4px)">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-slide-down border border-slate-200">
+            <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-gradient-to-r from-blue-50 to-white">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                    </div>
+                    <div>
+                        <h3 id="modal-titulo" class="text-base font-bold text-slate-800">Novo Advogado</h3>
+                        <p class="text-[11px] text-slate-400">Preencha os dados abaixo</p>
+                    </div>
+                </div>
+                <button onclick="fecharModalAdvogado()" class="p-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-400 hover:text-slate-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <form id="form-advogado" class="p-5 space-y-4">
+                <input type="hidden" id="adv-id" value="">
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">Nome Completo</label>
+                    <input type="text" id="adv-nome" required placeholder="Nome do advogado" class="block w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white hover:border-blue-300 transition-colors">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">Email</label>
+                    <input type="email" id="adv-email" required placeholder="advogado@email.com" class="block w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white hover:border-blue-300 transition-colors">
+                </div>
+                <div id="adv-senha-wrap">
+                    <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">Senha</label>
+                    <input type="password" id="adv-senha" placeholder="Mínimo 6 caracteres" class="block w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white hover:border-blue-300 transition-colors">
+                    <p id="adv-senha-hint" class="text-[10px] text-slate-400 mt-1 hidden">Deixe em branco para manter a senha atual.</p>
+                </div>
+                <button type="submit" id="btn-salvar-adv" class="w-full py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold rounded-xl shadow-lg shadow-blue-600/25 flex justify-center items-center gap-2 transition-all active:scale-[0.98] text-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    Salvar Advogado
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- MODAL: Atribuir Processos ao Advogado -->
+    <!-- ============================================================ -->
+    <div id="modal-processos" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4" style="background:rgba(15,23,42,0.5);backdrop-filter:blur(4px)">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden animate-slide-down border border-slate-200">
+            <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-gradient-to-r from-indigo-50 to-white shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-slate-800">Atribuir Processos</h3>
+                        <p id="modal-proc-advogado-nome" class="text-[11px] text-slate-400">Advogado: ...</p>
+                    </div>
+                </div>
+                <button onclick="fecharModalProcessos()" class="p-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-400 hover:text-slate-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+
+            <!-- Filtro -->
+            <div class="px-5 py-3 border-b border-slate-100 bg-slate-50/50 shrink-0">
+                <input type="text" id="busca-processo-atrib" placeholder="Buscar processo por número ou parte..." class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
+            </div>
+
+            <!-- Lista de Processos -->
+            <div id="processos-atrib-list" class="divide-y divide-slate-50 overflow-y-auto flex-1 p-2">
+                <div class="px-5 py-8 text-center text-slate-400 text-sm">Carregando processos...</div>
+            </div>
+
+            <!-- Footer -->
+            <div class="px-5 py-3 border-t border-slate-100 bg-slate-50/50 shrink-0 flex items-center justify-between">
+                <p id="atrib-status" class="text-[11px] text-slate-400"></p>
+                <button onclick="fecharModalProcessos()" class="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-slate-800 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
+                    Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation (Mobile) -->
+    <div class="md:hidden fixed bottom-0 left-0 w-full bg-white border-t border-slate-200 flex justify-around py-3 pb-safe z-50">
+        <a href="dashboard.html" class="flex flex-col items-center text-slate-400 hover:text-slate-600">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+            <span class="text-[10px] font-medium mt-0.5">Início</span>
+        </a>
+        <a href="processos.html" class="flex flex-col items-center text-slate-400 hover:text-slate-600">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+            <span class="text-[10px] font-medium mt-0.5">Processos</span>
+        </a>
+        <a href="clientes.html" class="flex flex-col items-center text-slate-400 hover:text-slate-600">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5-2.83M9 20H4v-2a3 3 0 015-2.83M9 20h6M9 20v-2a3 3 0 016 0v2M12 7a3 3 0 110 6 3 3 0 010-6z"></path></svg>
+            <span class="text-[10px] font-medium mt-0.5">Clientes</span>
+        </a>
+        <a href="advogados.html" class="flex flex-col items-center text-blue-600">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+            <span class="text-[10px] font-bold mt-0.5">Advogados</span>
+        </a>
+    </div>
+
+    <!-- Scripts de Infraestrutura -->
+    <script src="js/config.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+
+    <!-- Script da Página -->
+    <script src="js/advogados.js"></script>
+
+</body>
+</html>

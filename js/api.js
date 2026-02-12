@@ -57,6 +57,12 @@ const API = {
         } else if (action === 'cadastrarCliente' || action === 'atualizarCliente') {
             Utils.Cache.clear('listarClientes');
             Utils.Cache.clear('buscarClientePorId');
+        } else if (action === 'listarAdvogados' || action === 'atualizarAdvogados') {
+            Utils.Cache.clear('listarAdvogados');
+        } else if (action === 'atribuirProcesso') {
+            Utils.Cache.clear('listarProcessos');
+            Utils.Cache.clear('listarProcessosAdvogado');
+            Utils.Cache.clear('listarProcessosAtribuicao');
         }
     },
 
@@ -270,6 +276,24 @@ const API = {
             API.invalidateRelatedCache('novaMovimentacao');
             return result;
         })
+    },
+
+    advogados: {
+        listar: () => API.call('listarAdvogados', {}, 'POST', true),
+        cadastrar: (dados) => API.call('cadastrarAdvogado', dados).then(function(result) {
+            API.invalidateRelatedCache('listarAdvogados');
+            return result;
+        }),
+        atualizar: (dados) => API.call('atualizarAdvogado', dados).then(function(result) {
+            API.invalidateRelatedCache('atualizarAdvogados');
+            return result;
+        }),
+        atribuirProcesso: (dados) => API.call('atribuirProcesso', dados, 'POST', true).then(function(result) {
+            API.invalidateRelatedCache('atribuirProcesso');
+            return result;
+        }),
+        listarProcessos: (advogadoId) => API.call('listarProcessosAdvogado', { advogado_id: advogadoId }, 'POST', true),
+        listarProcessosAtribuicao: () => API.call('listarProcessosAtribuicao', {}, 'POST', true)
     },
 
     drive: {
