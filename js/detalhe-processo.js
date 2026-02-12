@@ -235,9 +235,17 @@ function loadProcessoDetalhe(id) {
             if (p.link_pasta) {
                 btnDrive.href = p.link_pasta;
                 btnDrive.classList.remove('hidden');
+                btnDrive.classList.add('inline-flex');
             } else {
                 btnDrive.classList.add('hidden');
+                btnDrive.classList.remove('inline-flex');
             }
+        }
+
+        // Mostrar observações se existirem
+        var descWrap = document.getElementById('proc-descricao-wrap');
+        if (descWrap && p.descricao && String(p.descricao).trim()) {
+            descWrap.classList.remove('hidden');
         }
 
         // Data de entrada duplicada no info grid
@@ -1438,10 +1446,16 @@ window.toggleDocumentos = function() {
 
     if (documentosPanelOpen) {
         section.classList.remove('hidden');
-        setTimeout(function() {
-            section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 100);
     } else {
         section.classList.add('hidden');
     }
 };
+
+// Fechar modal de documentos ao clicar no backdrop
+document.addEventListener('click', function(e) {
+    var section = document.getElementById('documentos-section');
+    if (section && !section.classList.contains('hidden') && e.target === section) {
+        documentosPanelOpen = false;
+        section.classList.add('hidden');
+    }
+});

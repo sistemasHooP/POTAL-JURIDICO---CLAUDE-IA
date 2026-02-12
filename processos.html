@@ -23,63 +23,59 @@
 <body class="bg-slate-50 min-h-screen pb-20 md:pb-0">
 
     <!-- Navbar Mobile (Topo) -->
-    <nav class="bg-slate-800 text-white p-4 shadow-lg sticky top-0 z-40 md:hidden flex justify-between items-center">
+    <nav class="bg-slate-900 text-white p-4 shadow-lg sticky top-0 z-40 md:hidden flex justify-between items-center">
         <div class="flex items-center space-x-2">
             <div class="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"></path></svg>
             </div>
-            <span class="font-bold text-lg tracking-tight">RPPS Juridico</span>
+            <span class="font-bold text-lg tracking-tight">RPPS Jurídico</span>
         </div>
     </nav>
 
     <div class="flex h-screen overflow-hidden">
 
         <!-- Sidebar (Desktop) -->
-        <aside class="hidden md:flex flex-col w-64 bg-slate-800 text-white h-full shrink-0">
-            <div class="p-6 border-b border-slate-700">
-                <h1 class="text-2xl font-bold flex items-center gap-2">
-                    <svg class="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"></path></svg>
-                    RPPS
+        <aside class="hidden md:flex flex-col w-72 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 text-white h-full shrink-0 shadow-2xl z-20">
+            <div class="px-6 py-5 border-b border-white/5">
+                <h1 class="text-xl font-black flex items-center gap-2.5 tracking-tight">
+                    <svg class="w-7 h-7 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"></path></svg>
+                    RPPS Jurídico
                 </h1>
-                <p class="text-xs text-slate-400 mt-1 pl-10">Juridico v1.0</p>
+                <p class="text-[10px] text-slate-500 mt-0.5 pl-[38px] uppercase tracking-[0.2em]">Sistema v2.0</p>
             </div>
-
-            <!-- User Info Desktop -->
-            <div class="p-6 border-b border-slate-700 bg-slate-900/50">
+            <div class="px-5 py-4 border-b border-white/5">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center font-bold text-lg">
+                    <div class="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center font-bold text-sm text-white shadow-lg shadow-blue-900/30">
                         <span id="user-initials">U</span>
                     </div>
-                    <div>
-                        <p class="text-sm font-semibold truncate w-32" id="user-name-display">Carregando...</p>
-                        <p class="text-xs text-blue-300 uppercase tracking-wider" id="user-profile-display">...</p>
+                    <div class="min-w-0">
+                        <p class="text-sm font-semibold truncate" id="user-name-display">Carregando...</p>
+                        <p class="text-[10px] text-blue-400 uppercase tracking-wider font-medium" id="user-profile-display">...</p>
                     </div>
                 </div>
             </div>
-
-            <!-- Menu Desktop -->
-            <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
-                <a href="dashboard.html" class="flex items-center gap-3 px-4 py-3 text-slate-300 hover:bg-slate-700 hover:text-white rounded-lg transition-colors">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+            <nav class="flex-1 p-3 space-y-1 overflow-y-auto">
+                <p class="text-[9px] font-bold text-slate-600 uppercase tracking-[0.2em] px-3 mb-2">Menu</p>
+                <a href="dashboard.html" class="flex items-center gap-3 px-3.5 py-2.5 text-slate-400 hover:bg-white/5 hover:text-white rounded-xl transition-all text-sm">
+                    <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
                     Dashboard
                 </a>
-                <a href="processos.html" class="flex items-center gap-3 px-4 py-3 bg-blue-600 rounded-lg text-white shadow-lg shadow-blue-500/30">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                <a href="processos.html" class="flex items-center gap-3 px-3.5 py-2.5 bg-blue-600/20 text-blue-300 rounded-xl transition-all text-sm font-medium border border-blue-500/20">
+                    <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                     Processos
                 </a>
-                <a href="clientes.html" class="flex items-center gap-3 px-4 py-3 text-slate-300 hover:bg-slate-700 hover:text-white rounded-lg transition-colors">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5-2.83M9 20H4v-2a3 3 0 015-2.83M9 20h6M9 20v-2a3 3 0 016 0v2M12 7a3 3 0 110 6 3 3 0 010-6z"></path></svg>
+                <a href="clientes.html" class="flex items-center gap-3 px-3.5 py-2.5 text-slate-400 hover:bg-white/5 hover:text-white rounded-xl transition-all text-sm">
+                    <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5-2.83M9 20H4v-2a3 3 0 015-2.83M9 20h6M9 20v-2a3 3 0 016 0v2M12 7a3 3 0 110 6 3 3 0 010-6z"></path></svg>
                     Clientes
                 </a>
-                <a href="novo-processo.html" class="flex items-center gap-3 px-4 py-3 text-slate-300 hover:bg-slate-700 hover:text-white rounded-lg transition-colors">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                <a href="novo-processo.html" class="flex items-center gap-3 px-3.5 py-2.5 text-slate-400 hover:bg-white/5 hover:text-white rounded-xl transition-all text-sm">
+                    <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                     Novo Processo
                 </a>
             </nav>
-
-            <div class="p-4 border-t border-slate-700">
-                <button id="desktop-logout-btn" class="flex items-center gap-3 w-full px-4 py-2 text-slate-400 hover:text-red-400 transition-colors">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+            <div class="p-3 border-t border-white/5">
+                <button id="desktop-logout-btn" class="flex items-center gap-3 w-full px-3.5 py-2.5 text-slate-500 hover:text-red-400 hover:bg-red-400/5 rounded-xl transition-all text-sm">
+                    <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
                     Sair do Sistema
                 </button>
             </div>
