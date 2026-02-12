@@ -4,7 +4,7 @@
  * DESCRIÇÃO: Regras de negócio para movimentações processuais.
  * FUNÇÃO: Registrar andamentos, uploads, prazos e notificar por e-mail.
  * DEPENDÊNCIAS: Database.gs, DriveService.gs, Auth.gs, Config.gs, Utils.gs
- * VERSÃO: 2.1
+ * VERSÃO: 3.0 - Persistência robusta de referências e prazos inteligentes
  * AUTOR: Sistema RPPS Jurídico
  * ============================================================================
  */
@@ -13,6 +13,8 @@ var MovimentacoesService = {
 
   /**
    * Registra nova movimentação em processo existente.
+   * Salva mov_referencia_id para vincular respostas a prazos.
+   * Atualiza data_prazo do processo inteligentemente.
    * @param {Object} payload
    */
   novaMovimentacao: function(payload) {
@@ -74,7 +76,11 @@ var MovimentacoesService = {
 
     var movSalva = Database.create(CONFIG.SHEET_NAMES.MOVIMENTACOES, novaMov);
 
-    // Atualização da capa do processo
+    // ================================================================
+    // ATUALIZAÇÃO INTELIGENTE DO PROCESSO
+    // Quando responde a um prazo (mov_referencia_id), calcula o próximo
+    // prazo pendente entre todas as movimentações do processo.
+    // ================================================================
     var updatesProcesso = {};
 
     if (payload.novo_status && payload.novo_status !== processo.status) {
@@ -84,9 +90,13 @@ var MovimentacoesService = {
     }
 
     if (payload.data_prazo) {
+      // Nova movimentação com prazo: atualiza o prazo do processo
       updatesProcesso.data_prazo = new Date(payload.data_prazo);
-    } else if (payload.hasOwnProperty('data_prazo')) {
-      // Só limpa se o campo veio explicitamente no payload
+    } else if (payload.mov_referencia_id) {
+      // Respondeu a um prazo: calcula próximo prazo pendente
+      var proximoPrazo = this._calcularProximoPrazoPendente(payload.id_processo, movSalva.id);
+      updatesProcesso.data_prazo = proximoPrazo ? proximoPrazo : '';
+    } else if (payload.hasOwnProperty('data_prazo') && !payload.data_prazo) {
       updatesProcesso.data_prazo = '';
     }
 
@@ -105,9 +115,48 @@ var MovimentacoesService = {
     }
 
     Utils.logAction(auth.user.email, ENUMS.ACOES_LOG.CRIAR_MOVIMENTACAO,
-      'Movimentação (' + payload.tipo + ') no processo ' + processo.numero_processo);
+      'Movimentação (' + payload.tipo + ') no processo ' + processo.numero_processo +
+      (payload.mov_referencia_id ? ' [em resposta a: ' + payload.mov_referencia_id + ']' : ''));
 
     return movSalva;
+  },
+
+  /**
+   * Calcula o próximo prazo pendente (não respondido) de um processo.
+   * Retorna a data mais próxima do futuro, ou a mais recente se todas estão vencidas.
+   * @private
+   * @param {string} idProcesso - ID do processo
+   * @param {string} ignorarMovId - ID da movimentação recém-criada (para ignorar)
+   * @returns {Date|null} Próximo prazo pendente ou null se não houver
+   */
+  _calcularProximoPrazoPendente: function(idProcesso, ignorarMovId) {
+    var movimentacoes = Database.findBy(CONFIG.SHEET_NAMES.MOVIMENTACOES, 'id_processo', idProcesso);
+
+    // Monta set de IDs que foram respondidos (tem alguma mov apontando para eles)
+    var idsRespondidos = {};
+    movimentacoes.forEach(function(m) {
+      var refId = m.mov_referencia_id;
+      if (refId && String(refId).trim() !== '') {
+        idsRespondidos[String(refId)] = true;
+      }
+    });
+
+    // Filtra: tem prazo, NÃO foi respondido, NÃO é a movimentação recém-criada
+    var pendentes = movimentacoes.filter(function(m) {
+      if (!m.data_prazo) return false;
+      if (m.id && String(m.id) === String(ignorarMovId)) return false;
+      if (m.id && idsRespondidos[String(m.id)]) return false;
+      return true;
+    });
+
+    if (pendentes.length === 0) return null;
+
+    // Ordena por data_prazo (mais próximo primeiro)
+    pendentes.sort(function(a, b) {
+      return new Date(a.data_prazo) - new Date(b.data_prazo);
+    });
+
+    return new Date(pendentes[0].data_prazo);
   },
 
   /**
