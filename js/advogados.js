@@ -10,6 +10,7 @@
 let advogadosData = [];
 let processosAtribuicaoData = [];
 let advogadoSelecionadoId = null;
+let isPresidente = false;
 
 document.addEventListener('DOMContentLoaded', function() {
 
@@ -28,6 +29,13 @@ document.addEventListener('DOMContentLoaded', function() {
     if (user && user.nome) {
         var initialsEl = document.getElementById('user-initials');
         if (initialsEl) initialsEl.textContent = user.nome.substring(0, 1).toUpperCase();
+    }
+
+    // PRESIDENTE pode criar/editar ADMIN e escolher perfil
+    isPresidente = user && (user.perfil || '').toUpperCase() === 'PRESIDENTE';
+    if (isPresidente) {
+        var perfilWrap = document.getElementById('adv-perfil-wrap');
+        if (perfilWrap) perfilWrap.classList.remove('hidden');
     }
 
     var btnLogout = document.getElementById('desktop-logout-btn');
@@ -139,12 +147,23 @@ function renderAdvogadosTable(filtro) {
 
         html += '<tr class="hover:bg-slate-50/80 transition-colors">';
 
-        // Nome + Iniciais
+        // Nome + Iniciais + Badge de perfil
+        var perfilUser = (adv.perfil || 'ADVOGADO').toUpperCase();
+        var isAdmin = perfilUser === 'ADMIN';
+        var avatarClass = isAdmin
+            ? (ativo ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-400')
+            : (ativo ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-400');
+
         html += '<td class="px-5 py-3.5">';
         html += '<div class="flex items-center gap-3">';
-        html += '<div class="w-9 h-9 rounded-xl ' + (ativo ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-400') + ' flex items-center justify-center font-bold text-xs shrink-0">' + Utils.escapeHtml(iniciais) + '</div>';
+        html += '<div class="w-9 h-9 rounded-xl ' + avatarClass + ' flex items-center justify-center font-bold text-xs shrink-0">' + Utils.escapeHtml(iniciais) + '</div>';
         html += '<div class="min-w-0">';
+        html += '<div class="flex items-center gap-1.5">';
         html += '<p class="text-sm font-semibold text-slate-700 truncate">' + Utils.escapeHtml(adv.nome || '-') + '</p>';
+        if (isAdmin) {
+            html += '<span class="text-[8px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 border border-amber-200 uppercase shrink-0">Admin</span>';
+        }
+        html += '</div>';
         html += '<p class="text-[10px] text-slate-400 sm:hidden truncate">' + Utils.escapeHtml(adv.email || '') + '</p>';
         html += '</div>';
         html += '</div>';
@@ -213,8 +232,11 @@ window.abrirModalCadastro = function() {
     document.getElementById('adv-senha').value = '';
     document.getElementById('adv-senha').required = true;
     document.getElementById('adv-senha').placeholder = 'Mínimo 6 caracteres';
-    document.getElementById('modal-titulo').textContent = 'Novo Advogado';
+    document.getElementById('modal-titulo').textContent = 'Novo Usuário';
     document.getElementById('adv-senha-hint').classList.add('hidden');
+
+    var perfilSel = document.getElementById('adv-perfil');
+    if (perfilSel) perfilSel.value = 'ADVOGADO';
 
     document.getElementById('modal-advogado').classList.remove('hidden');
 };
@@ -232,8 +254,11 @@ window.editarAdvogado = function(id) {
     document.getElementById('adv-senha').value = '';
     document.getElementById('adv-senha').required = false;
     document.getElementById('adv-senha').placeholder = 'Deixe vazio para manter';
-    document.getElementById('modal-titulo').textContent = 'Editar Advogado';
+    document.getElementById('modal-titulo').textContent = 'Editar Usuário';
     document.getElementById('adv-senha-hint').classList.remove('hidden');
+
+    var perfilSel = document.getElementById('adv-perfil');
+    if (perfilSel) perfilSel.value = (adv.perfil || 'ADVOGADO').toUpperCase();
 
     document.getElementById('modal-advogado').classList.remove('hidden');
 };
@@ -267,25 +292,31 @@ function handleSalvarAdvogado(e) {
 
     var promise;
 
+    var perfilSel = document.getElementById('adv-perfil');
+    var perfilEscolhido = (perfilSel && isPresidente) ? perfilSel.value : 'ADVOGADO';
+
     if (id) {
         // Atualizar
         var payload = { advogado_id: id, nome: nome, email: email };
         if (senha) payload.senha = senha;
+        if (isPresidente) payload.perfil_usuario = perfilEscolhido;
         promise = API.advogados.atualizar(payload);
     } else {
         // Criar
         if (!senha || senha.length < 6) {
             Utils.showToast("Senha deve ter pelo menos 6 caracteres.", "warning");
             btn.disabled = false;
-            btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Salvar Advogado';
+            btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Salvar';
             return;
         }
-        promise = API.advogados.cadastrar({ nome: nome, email: email, senha: senha });
+        var payloadCriar = { nome: nome, email: email, senha: senha };
+        if (isPresidente) payloadCriar.perfil_usuario = perfilEscolhido;
+        promise = API.advogados.cadastrar(payloadCriar);
     }
 
     promise
         .then(function() {
-            Utils.showToast(id ? "Advogado atualizado!" : "Advogado cadastrado!", "success");
+            Utils.showToast(id ? "Usuário atualizado!" : "Usuário cadastrado!", "success");
             fecharModalAdvogado();
             carregarAdvogados();
         })
@@ -294,7 +325,7 @@ function handleSalvarAdvogado(e) {
         })
         .finally(function() {
             btn.disabled = false;
-            btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Salvar Advogado';
+            btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Salvar';
         });
 }
 

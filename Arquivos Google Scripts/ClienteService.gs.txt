@@ -263,13 +263,22 @@ var ClienteService = {
    * Busca cliente por CPF
    */
   buscarPorCPF: function(cpf) {
-    var cpfNormalizado = Utils.normalizarCPF(cpf);
+    var doc = String(cpf || '').replace(/\D/g, '');
 
-    if (!cpfNormalizado || cpfNormalizado.length !== 11) {
+    // CPF: normaliza com padding
+    if (doc.length > 0 && doc.length <= 11) {
+      doc = Utils.normalizarCPF(cpf);
+    }
+    // CNPJ: normaliza com padding
+    if (doc.length > 11 && doc.length <= 14) {
+      doc = Utils.normalizarCNPJ(cpf);
+    }
+
+    if (!doc || (doc.length !== 11 && doc.length !== 14)) {
       return null;
     }
 
-    var clientes = Database.findByCPF(CONFIG.SHEET_NAMES.CLIENTES, 'cpf', cpfNormalizado);
+    var clientes = Database.findByCPF(CONFIG.SHEET_NAMES.CLIENTES, 'cpf', doc);
 
     if (!clientes || clientes.length === 0) {
       return null;
@@ -293,31 +302,42 @@ var ClienteService = {
     }
 
     var nome = String(payload.nome_completo || '').trim();
-    var cpf = Utils.normalizarCPF(payload.cpf);
+    var docRaw = String(payload.cpf || '').replace(/\D/g, '');
     var email = String(payload.email || '').trim().toLowerCase();
     var telefone = String(payload.telefone || '').replace(/\D/g, '');
+
+    // Normaliza conforme tipo de documento
+    if (docRaw.length > 0 && docRaw.length <= 11) {
+      docRaw = Utils.normalizarCPF(payload.cpf);
+    } else if (docRaw.length > 11 && docRaw.length <= 14) {
+      docRaw = Utils.normalizarCNPJ(payload.cpf);
+    }
 
     // Validações
     if (!nome) {
       throw new Error('Nome é obrigatório.');
     }
 
-    if (!cpf || cpf.length !== 11) {
-      throw new Error('CPF inválido.');
+    if (!docRaw || (docRaw.length !== 11 && docRaw.length !== 14)) {
+      throw new Error('CPF (11 dígitos) ou CNPJ (14 dígitos) inválido.');
     }
 
-    if (!Utils.isValidCPF(cpf)) {
+    if (docRaw.length === 11 && !Utils.isValidCPF(docRaw)) {
       throw new Error('CPF inválido (dígitos verificadores incorretos).');
+    }
+
+    if (docRaw.length === 14 && !Utils.isValidCNPJ(docRaw)) {
+      throw new Error('CNPJ inválido (dígitos verificadores incorretos).');
     }
 
     if (!email || !Utils.isValidEmail(email)) {
       throw new Error('Email inválido.');
     }
 
-    // Verifica duplicidade de CPF
-    var existente = this.buscarPorCPF(cpf);
+    // Verifica duplicidade de CPF/CNPJ
+    var existente = this.buscarPorCPF(docRaw);
     if (existente) {
-      throw new Error('Já existe um cliente cadastrado com este CPF.');
+      throw new Error('Já existe um cliente cadastrado com este CPF/CNPJ.');
     }
 
     // Verifica duplicidade de email
@@ -329,7 +349,7 @@ var ClienteService = {
     // Cria cliente
     var novoCliente = Database.create(CONFIG.SHEET_NAMES.CLIENTES, {
       nome_completo: nome,
-      cpf: cpf,
+      cpf: docRaw,
       email: email,
       telefone: telefone,
       status: ENUMS.STATUS_CLIENTE.ATIVO,
@@ -340,8 +360,9 @@ var ClienteService = {
       criado_por: auth.user.email
     });
 
+    var logDoc = docRaw.length === 14 ? docRaw.substring(0, 4) + '***' : Utils.maskCPF(docRaw);
     Utils.logAction(auth.user.email, ENUMS.ACOES_LOG.CRIAR_CLIENTE,
-      'Cliente criado: ' + Utils.maskCPF(cpf));
+      'Cliente criado: ' + logDoc);
 
     return novoCliente;
   },

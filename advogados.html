@@ -220,6 +220,13 @@
                     <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">Email</label>
                     <input type="email" id="adv-email" required placeholder="advogado@email.com" class="block w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white hover:border-blue-300 transition-colors">
                 </div>
+                <div id="adv-perfil-wrap" class="hidden">
+                    <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">Perfil</label>
+                    <select id="adv-perfil" class="block w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white hover:border-blue-300 transition-colors">
+                        <option value="ADVOGADO">Advogado</option>
+                        <option value="ADMIN">Administrador</option>
+                    </select>
+                </div>
                 <div id="adv-senha-wrap">
                     <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">Senha</label>
                     <input type="password" id="adv-senha" placeholder="Mínimo 6 caracteres" class="block w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white hover:border-blue-300 transition-colors">
@@ -227,7 +234,7 @@
                 </div>
                 <button type="submit" id="btn-salvar-adv" class="w-full py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold rounded-xl shadow-lg shadow-blue-600/25 flex justify-center items-center gap-2 transition-all active:scale-[0.98] text-sm">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                    Salvar Advogado
+                    Salvar
                 </button>
             </form>
         </div>

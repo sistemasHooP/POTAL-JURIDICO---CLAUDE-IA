@@ -165,10 +165,14 @@ const Utils = {
         const day = String(date.getDate()).padStart(2, '0');
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const year = date.getFullYear();
-        const hours = String(date.getHours()).padStart(2, '0');
-        const minutes = String(date.getMinutes()).padStart(2, '0');
-        const seconds = String(date.getSeconds()).padStart(2, '0');
-        return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+        const hours = date.getHours();
+        const minutes = date.getMinutes();
+        const seconds = date.getSeconds();
+        // Omite horário se for 00:00:00 (data sem hora)
+        if (hours === 0 && minutes === 0 && seconds === 0) {
+            return `${day}/${month}/${year}`;
+        }
+        return `${day}/${month}/${year} ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
     },
 
     getStatusClass: function(status) {
@@ -224,5 +228,31 @@ const Utils = {
         rem = sum % 11;
         var dig2 = rem < 2 ? 0 : 11 - rem;
         return parseInt(d.charAt(10)) === dig2;
+    },
+
+    validarCNPJ: function(cnpj) {
+        var d = String(cnpj || '').replace(/\D/g, '');
+        if (d.length !== 14) return false;
+        if (/^(\d)\1{13}$/.test(d)) return false;
+        var t = d.length - 2;
+        var n = d.substring(0, t);
+        var digitos = d.substring(t);
+        var soma = 0, pos = t - 7, i;
+        for (i = t; i >= 1; i--) {
+            soma += parseInt(n.charAt(t - i)) * pos--;
+            if (pos < 2) pos = 9;
+        }
+        var res = soma % 11 < 2 ? 0 : 11 - (soma % 11);
+        if (res !== parseInt(digitos.charAt(0))) return false;
+        t++;
+        n = d.substring(0, t);
+        soma = 0;
+        pos = t - 7;
+        for (i = t; i >= 1; i--) {
+            soma += parseInt(n.charAt(t - i)) * pos--;
+            if (pos < 2) pos = 9;
+        }
+        res = soma % 11 < 2 ? 0 : 11 - (soma % 11);
+        return res === parseInt(digitos.charAt(1));
     }
 };

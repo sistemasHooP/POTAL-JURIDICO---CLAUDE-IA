@@ -128,17 +128,27 @@ var ProcessosService = {
       }
     }
 
-    // CPF informado: tenta localizar cliente e/ou cadastrar automaticamente
+    // CPF/CNPJ informado: tenta localizar cliente e/ou cadastrar automaticamente
     if (!clienteId && payload.cpf_cliente) {
-      var cpfNormalizado = Utils.normalizarCPF(payload.cpf_cliente);
+      var docDigits = String(payload.cpf_cliente).replace(/\D/g, '');
+      var cpfNormalizado;
 
-      if (!cpfNormalizado || cpfNormalizado.length !== 11) {
-        throw new Error('CPF do cliente inválido. Informe 11 dígitos.');
-      }
-
-      // Sempre valida CPF quando ele é usado para vínculo
-      if (!Utils.isValidCPF(cpfNormalizado)) {
-        throw new Error('CPF do cliente inválido. Verifique os dígitos informados.');
+      if (docDigits.length <= 11) {
+        cpfNormalizado = Utils.normalizarCPF(payload.cpf_cliente);
+        if (!cpfNormalizado || cpfNormalizado.length !== 11) {
+          throw new Error('CPF do cliente inválido. Informe 11 dígitos.');
+        }
+        if (!Utils.isValidCPF(cpfNormalizado)) {
+          throw new Error('CPF do cliente inválido. Verifique os dígitos informados.');
+        }
+      } else {
+        cpfNormalizado = Utils.normalizarCNPJ(payload.cpf_cliente);
+        if (!cpfNormalizado || cpfNormalizado.length !== 14) {
+          throw new Error('CNPJ do cliente inválido. Informe 14 dígitos.');
+        }
+        if (!Utils.isValidCNPJ(cpfNormalizado)) {
+          throw new Error('CNPJ do cliente inválido. Verifique os dígitos informados.');
+        }
       }
 
       // Tenta achar cliente existente
