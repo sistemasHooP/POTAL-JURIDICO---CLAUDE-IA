@@ -71,6 +71,13 @@
             to { opacity: 1; transform: translateY(0); }
         }
         .animate-slide-down { animation: slideDown 0.2s ease-out; }
+
+        /* Scrollbar sutil para coluna sticky */
+        #form-section::-webkit-scrollbar { width: 4px; }
+        #form-section::-webkit-scrollbar-track { background: transparent; }
+        #form-section::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        #form-section::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        #form-section { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
     </style>
 </head>
 <body class="bg-slate-100 min-h-screen pb-24 md:pb-0">
@@ -297,7 +304,7 @@
                 </div>
 
                 <!-- Coluna Direita: Formulário de Ação (aparece primeiro no mobile) -->
-                <div class="lg:col-span-1 space-y-6 order-1 lg:order-2" id="form-section">
+                <div class="lg:col-span-1 space-y-6 order-1 lg:order-2 lg:sticky lg:top-4 lg:self-start lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto" id="form-section">
 
                     <!-- Notas Internas do Advogado -->
                     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
@@ -312,7 +319,7 @@
                         <p class="text-[10px] text-slate-400 mt-1">Sincronizado automaticamente - visível para toda a equipe</p>
                     </div>
 
-                    <div class="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 lg:sticky lg:top-4">
+                    <div class="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
                         <div class="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
                             <div class="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-md">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>

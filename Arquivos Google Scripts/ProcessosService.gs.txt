@@ -302,6 +302,41 @@ var ProcessosService = {
   },
 
   /**
+   * Salva notas internas de um processo.
+   * Visível para toda a equipe (gestores).
+   *
+   * @param {Object} payload - { id_processo, notas_internas, token }
+   */
+  salvarNotas: function(payload) {
+    var auth = AuthService.verificarToken(payload);
+    if (!auth.valido) {
+      throw new Error('Sessão expirada. Faça login novamente.');
+    }
+
+    if (!AuthService.isGestor(auth.user.perfil)) {
+      throw new Error('Acesso negado.');
+    }
+
+    var idProcesso = String(payload.id_processo || '').trim();
+    if (!idProcesso) {
+      throw new Error('ID do processo não fornecido.');
+    }
+
+    var processo = Database.findById(CONFIG.SHEET_NAMES.PROCESSOS, idProcesso);
+    if (!processo) {
+      throw new Error('Processo não encontrado.');
+    }
+
+    var notas = payload.notas_internas != null ? String(payload.notas_internas) : '';
+
+    Database.update(CONFIG.SHEET_NAMES.PROCESSOS, idProcesso, {
+      notas_internas: notas
+    });
+
+    return { salvo: true };
+  },
+
+  /**
    * Gera estatísticas para o Dashboard.
    */
   getDashboardStats: function(payload) {

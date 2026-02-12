@@ -169,6 +169,9 @@ function _routeAction(payload) {
     case 'getDashboard':
       return ProcessosService.getDashboardStats(payload);
 
+    case 'salvarNotasProcesso':
+      return ProcessosService.salvarNotas(payload);
+
     // Movimentações
     case 'novaMovimentacao':
       return MovimentacoesService.novaMovimentacao(payload);

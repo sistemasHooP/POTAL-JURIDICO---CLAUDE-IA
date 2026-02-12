@@ -371,6 +371,7 @@ var ClienteService = {
         email: c.email,
         telefone: c.telefone,
         status: c.status,
+        notificacoes_ativas: c.notificacoes_ativas || 'SIM',
         ultimo_acesso: c.ultimo_acesso,
         created_at: c.created_at
       };
@@ -408,7 +409,8 @@ var ClienteService = {
       cpf: cliente.cpf,
       email: cliente.email,
       telefone: cliente.telefone,
-      status: cliente.status
+      status: cliente.status,
+      notificacoes_ativas: cliente.notificacoes_ativas || 'SIM'
     };
   },
 
@@ -452,6 +454,13 @@ var ClienteService = {
 
     if (payload.status) {
       updates.status = payload.status;
+    }
+
+    if (payload.notificacoes_ativas) {
+      var val = String(payload.notificacoes_ativas).toUpperCase();
+      if (val === 'SIM' || val === 'NAO') {
+        updates.notificacoes_ativas = val;
+      }
     }
 
     var clienteAtualizado = Database.update(CONFIG.SHEET_NAMES.CLIENTES, clienteId, updates);
