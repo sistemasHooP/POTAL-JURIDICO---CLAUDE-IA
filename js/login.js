@@ -63,40 +63,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 // Se chegou aqui, login ok
                 Auth.saveSession(response);
-
-                // 3. PRELOAD REAL (Cache Warming)
-                await Promise.all([
-                    new Promise(resolve => {
-                        API.processos.dashboard((data, source) => {
-                            if (source === 'network') resolve();
-                        }, true).catch(resolve);
-                    }),
-
-                    new Promise(resolve => {
-                        API.processos.listar({}, (data, source) => {
-                            if (source === 'network') resolve();
-                        }, true).catch(resolve);
-                    }),
-
-                    // Pré-carrega clientes para acelerar Novo Processo e aba Clientes
-                    new Promise(resolve => {
-                        API.clientes.listar((data, source) => {
-                            if (source === 'network') resolve();
-                        }, true).catch(resolve);
-                    })
-                ]);
-
-                // 4. Sucesso
                 Utils.hideLoading();
+                Utils.showToast("Login realizado com sucesso!", "success");
 
-                setTimeout(() => {
-                    Utils.showToast(`Login realizado com sucesso!`, "success");
-
-                    // Redireciona
-                    setTimeout(() => {
-                        Utils.navigateTo(CONFIG.PAGES.DASHBOARD);
-                    }, 1000);
-                }, 100);
+                // Redireciona imediatamente (preload acontece no dashboard via SWR)
+                Utils.navigateTo(CONFIG.PAGES.DASHBOARD);
 
             } catch (error) {
                 console.error("Falha no login:", error);

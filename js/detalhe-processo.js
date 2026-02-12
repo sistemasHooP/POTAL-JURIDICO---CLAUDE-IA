@@ -253,6 +253,7 @@ function loadProcessoDetalhe(id) {
         renderPrazosPanel(movs, refMap);
         populateReferenciaDropdown(movs, refMap);
         renderDocumentos(movs, p.link_pasta);
+        loadNotasFromAPI(p);
 
         // Contador de movimentações
         const countBadge = document.getElementById('mov-count-badge');
@@ -1033,19 +1034,48 @@ function setupNotasInternas() {
     if (!procId) return;
 
     const storageKey = 'notas_processo_' + procId;
-    const saved = localStorage.getItem(storageKey);
-    if (saved) textarea.value = saved;
+
+    // Carrega do localStorage como fallback imediato
+    const savedLocal = localStorage.getItem(storageKey);
+    if (savedLocal) textarea.value = savedLocal;
 
     let timer = null;
     textarea.addEventListener('input', function() {
         if (statusEl) statusEl.textContent = 'Salvando...';
         clearTimeout(timer);
         timer = setTimeout(function() {
-            localStorage.setItem(storageKey, textarea.value);
-            if (statusEl) statusEl.textContent = 'Salvo';
-            setTimeout(function() { if (statusEl) statusEl.textContent = ''; }, 2000);
-        }, 500);
+            var texto = textarea.value;
+            // Salva localmente sempre (backup)
+            localStorage.setItem(storageKey, texto);
+
+            // Sincroniza com o backend (para outros usuários verem)
+            API.call('salvarNotasProcesso', { id_processo: procId, notas_internas: texto }, 'POST', true)
+                .then(function() {
+                    if (statusEl) { statusEl.textContent = 'Salvo na nuvem'; statusEl.className = 'text-[10px] text-green-600'; }
+                    setTimeout(function() { if (statusEl) { statusEl.textContent = ''; statusEl.className = 'text-[10px] text-slate-400'; } }, 2500);
+                })
+                .catch(function() {
+                    // Backend ainda não suporta - salvo só local
+                    if (statusEl) { statusEl.textContent = 'Salvo localmente'; statusEl.className = 'text-[10px] text-amber-500'; }
+                    setTimeout(function() { if (statusEl) { statusEl.textContent = ''; statusEl.className = 'text-[10px] text-slate-400'; } }, 2500);
+                });
+        }, 800);
     });
+}
+
+// Carrega notas do backend quando o processo é carregado
+function loadNotasFromAPI(processo) {
+    if (!processo) return;
+    var textarea = document.getElementById('notas-internas');
+    if (!textarea) return;
+
+    // Se o backend retornou notas_internas, usa essas (prioridade sobre localStorage)
+    if (processo.notas_internas) {
+        textarea.value = processo.notas_internas;
+        // Atualiza localStorage com o dado do servidor
+        var storageKey = 'notas_processo_' + processo.id;
+        localStorage.setItem(storageKey, processo.notas_internas);
+    }
 }
 
 // =============================================================================
