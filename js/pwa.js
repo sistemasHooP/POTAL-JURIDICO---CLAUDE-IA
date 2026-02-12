@@ -17,8 +17,11 @@ let refreshing = false;
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
     try {
-      // ✅ Use caminho absoluto para funcionar em qualquer página (inclusive /cliente)
-      swRegistration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+      // Calcula o caminho base da aplicação (funciona em GitHub Pages com subdirectory)
+      const basePath = window.location.pathname.includes('/cliente/')
+          ? window.location.pathname.substring(0, window.location.pathname.indexOf('/cliente/') + 1)
+          : window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
+      swRegistration = await navigator.serviceWorker.register(basePath + 'sw.js', { scope: basePath });
       console.log('[PWA] Service Worker registrado com sucesso:', swRegistration.scope);
 
       // Se já existir um SW esperando, força ativação (evita usuário preso no cache antigo)

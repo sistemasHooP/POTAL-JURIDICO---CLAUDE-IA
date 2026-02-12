@@ -13,7 +13,7 @@
  */
 
 const APP_PREFIX = 'rpps-juridico';
-const CACHE_VERSION = 'v5'; // 👈 sempre aumente quando mudar o SW
+const CACHE_VERSION = 'v6'; // sempre aumente quando mudar o SW
 const CACHE_NAME = `${APP_PREFIX}-${CACHE_VERSION}`;
 
 // ✅ IMPORTANTE:
