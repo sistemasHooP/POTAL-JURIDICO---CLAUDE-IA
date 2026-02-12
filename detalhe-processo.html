@@ -289,18 +289,20 @@
 
                             <!-- Em resposta a (vincula a uma movimentação anterior) -->
                             <div id="mov-referencia-wrap" class="hidden">
-                                <label class="block text-xs font-bold text-slate-700 uppercase mb-1 ml-1">
-                                    Em Resposta a (Opcional)
+                                <label class="block text-xs font-bold text-emerald-700 uppercase mb-1 ml-1 flex items-center gap-1.5">
+                                    <svg class="w-3.5 h-3.5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg>
+                                    Responder a Prazo Pendente
                                 </label>
                                 <div class="relative">
-                                    <select id="mov-referencia" class="block w-full pl-3 pr-10 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-slate-50 hover:bg-white transition-colors cursor-pointer">
+                                    <select id="mov-referencia" class="block w-full pl-3 pr-10 py-2.5 border-2 border-emerald-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent appearance-none bg-emerald-50 hover:bg-white transition-colors cursor-pointer">
                                         <option value="">Nenhuma (nova movimentação independente)</option>
                                     </select>
-                                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500">
+                                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-emerald-500">
                                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                                     </div>
                                 </div>
-                                <p class="text-[10px] text-slate-400 mt-1">Vincule esta movimentação a um prazo anterior para marcar como concluído</p>
+                                <p class="text-[10px] text-slate-400 mt-1">Selecione o prazo que deseja responder. Isso vincula a movimentação e marca o prazo como concluído.</p>
+                                <div id="mov-referencia-info"></div>
                             </div>
 
                             <div>
