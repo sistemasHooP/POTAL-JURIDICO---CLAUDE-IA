@@ -13,23 +13,51 @@ const API = {
     // =========================================================================
     // CONFIGURAÇÃO DE CACHE (TTL POR AÇÃO)
     // =========================================================================
-    // TTL em MINUTOS. Você pode ajustar conforme sua necessidade.
-    // Ideia:
-    // - listarClientes: deixa maior para não “travar” e não chamar a planilha toda hora.
-    // - dashboard / processos: menor para refletir mudanças com mais frequência.
     CACHE_TTL_MINUTES: {
         default: 5,
-
-        // Dashboard
         getDashboard: 5,
-
-        // Processos
         listarProcessos: 10,
         getProcessoDetalhe: 10,
-
-        // Clientes
         listarClientes: 60,
         buscarClientePorId: 30
+    },
+
+    // =========================================================================
+    // PRELOAD: Pré-carrega dados de páginas adjacentes em background
+    // =========================================================================
+    preloadAdjacentPages: function() {
+        var currentPage = window.location.pathname.split('/').pop() || 'dashboard.html';
+
+        // Preload silencioso - não bloqueia UI, não mostra loading
+        setTimeout(function() {
+            if (currentPage === 'dashboard.html') {
+                // Quem está no dashboard provavelmente vai para processos ou clientes
+                API.fetchWithCache('listarProcessos', {}, function() {}, true).catch(function(){});
+                API.fetchWithCache('listarClientes', {}, function() {}, true).catch(function(){});
+            } else if (currentPage === 'processos.html') {
+                API.fetchWithCache('getDashboard', {}, function() {}, true).catch(function(){});
+                API.fetchWithCache('listarClientes', {}, function() {}, true).catch(function(){});
+            } else if (currentPage === 'clientes.html') {
+                API.fetchWithCache('listarProcessos', {}, function() {}, true).catch(function(){});
+            } else if (currentPage === 'novo-processo.html') {
+                API.fetchWithCache('listarClientes', {}, function() {}, true).catch(function(){});
+            }
+        }, 2000); // Espera 2s após carregar a página atual
+    },
+
+    // =========================================================================
+    // INVALIDAÇÃO DE CACHE APÓS ESCRITA (segurança multi-usuário)
+    // =========================================================================
+    invalidateRelatedCache: function(action) {
+        // Após qualquer escrita, limpa caches relacionados para forçar dados frescos
+        if (action === 'novaMovimentacao' || action === 'criarProcesso') {
+            Utils.Cache.clear('listarProcessos');
+            Utils.Cache.clear('getProcessoDetalhe');
+            Utils.Cache.clear('getDashboard');
+        } else if (action === 'cadastrarCliente' || action === 'atualizarCliente') {
+            Utils.Cache.clear('listarClientes');
+            Utils.Cache.clear('buscarClientePorId');
+        }
     },
 
     /**
@@ -205,22 +233,18 @@ const API = {
     },
 
     processos: {
-        // Dashboard com Cache SWR
-        // Passamos 'silent' adiante para permitir o preload silencioso no login
         dashboard: (onResult, silent = false) => API.fetchWithCache('getDashboard', {}, onResult, silent),
-
-        // Listagem com Cache SWR
         listar: (filtros, onResult, silent = false) => API.fetchWithCache('listarProcessos', filtros, onResult, silent),
-
-        // Detalhe com Cache SWR
         detalhar: (idProcesso, onResult) => API.fetchWithCache('getProcessoDetalhe', { id_processo: idProcesso }, onResult),
 
-        // Ações de Escrita (Sempre Network direto, sem cache de leitura)
-        criar: (dadosProcesso) => API.call('criarProcesso', dadosProcesso),
+        // Escrita: invalida caches relacionados após sucesso
+        criar: (dadosProcesso) => API.call('criarProcesso', dadosProcesso).then(function(result) {
+            API.invalidateRelatedCache('criarProcesso');
+            return result;
+        }),
     },
 
     clientes: {
-        // Se receber callback, usa SWR (cache + rede). Se não, retorna Promise direto da rede.
         listar: (onResult = null, silent = false) => {
             if (typeof onResult === 'function') {
                 return API.fetchWithCache('listarClientes', {}, onResult, silent);
@@ -228,19 +252,33 @@ const API = {
             return API.call('listarClientes', {}, 'POST', true);
         },
         buscarPorId: (cliente_id) => API.call('buscarClientePorId', { cliente_id }, 'POST', true),
-        cadastrar: (dadosCliente) => API.call('cadastrarCliente', dadosCliente),
-        atualizar: (dadosCliente) => API.call('atualizarCliente', dadosCliente)
+
+        // Escrita: invalida caches relacionados após sucesso
+        cadastrar: (dadosCliente) => API.call('cadastrarCliente', dadosCliente).then(function(result) {
+            API.invalidateRelatedCache('cadastrarCliente');
+            return result;
+        }),
+        atualizar: (dadosCliente) => API.call('atualizarCliente', dadosCliente).then(function(result) {
+            API.invalidateRelatedCache('atualizarCliente');
+            return result;
+        })
     },
 
     movimentacoes: {
-        nova: (dadosMov) => API.call('novaMovimentacao', dadosMov)
+        // Escrita: invalida caches de processos e dashboard
+        nova: (dadosMov) => API.call('novaMovimentacao', dadosMov).then(function(result) {
+            API.invalidateRelatedCache('novaMovimentacao');
+            return result;
+        })
     },
 
     drive: {
         upload: (dadosArquivo) => API.call('uploadArquivo', dadosArquivo),
-
-        // [NOVO] Baixa arquivo via proxy do sistema (Base64)
-        // Isso permite visualizar sem estar logado no Google Drive
         download: (fileData) => API.call('downloadArquivo', fileData)
     }
 };
+
+// Inicia preload de páginas adjacentes quando a página carrega
+document.addEventListener('DOMContentLoaded', function() {
+    API.preloadAdjacentPages();
+});
