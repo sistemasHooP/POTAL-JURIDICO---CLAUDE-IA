@@ -4,7 +4,7 @@
  * DESCRIÇÃO: Lógica da tela de detalhes, timeline, stepper, prazos inteligentes
  *            com sistema de referências (vinculação entre movimentações),
  *            notas internas e exportação de relatório.
- * VERSÃO: 5.0 - Prazos Persistentes, Caminho de Respostas e Notificações Inteligentes
+ * VERSÃO: 5.1 - Persistência no banco via API + UI otimista como fallback temporário
  * DEPENDÊNCIAS: js/api.js, js/auth.js, js/utils.js
  * ============================================================================
  */
@@ -12,7 +12,7 @@
 let currentProcessId = null;
 let currentProcessData = null;
 let currentMovimentacoes = []; // Lista de movimentações para popular dropdown
-let localReferences = {}; // Rastreia referências criadas na sessão para persistência imediata
+let localReferences = {}; // Fallback temporário p/ UI otimista (2s). Dados reais vêm da API/banco.
 
 document.addEventListener('DOMContentLoaded', function() {
 

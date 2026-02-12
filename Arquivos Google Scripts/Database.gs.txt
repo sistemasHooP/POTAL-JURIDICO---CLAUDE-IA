@@ -2,7 +2,7 @@
  * ============================================================================
  * ARQUIVO: Database.gs
  * DESCRIÇÃO: Camada de persistência (CRUD) para o Google Sheets.
- * VERSÃO: 2.0 - Com tratamento robusto de tipos (CPF como string)
+ * VERSÃO: 3.0 - Auto-criação de colunas + persistência robusta
  * FUNÇÃO: Converte linhas da planilha em objetos JSON e vice-versa.
  * DEPENDÊNCIAS: Config.gs
  * AUTOR: Sistema RPPS Jurídico
@@ -14,25 +14,24 @@ var Database = {
   /**
    * Lê todos os dados de uma aba e retorna como lista de objetos.
    * Assume que a LINHA 1 contém os cabeçalhos.
-   * 
+   *
    * IMPORTANTE: Esta função normaliza valores para garantir consistência:
    * - Campos que contêm 'cpf' são convertidos para string e normalizados
    * - Campos que contêm 'id' são convertidos para string
-   * 
+   *
    * @param {string} sheetName - Nome da aba (ex: 'PROCESSOS').
    * @returns {Array} Lista de objetos.
    */
   read: function(sheetName) {
     var sheet = this._getSheet(sheetName);
     var lastRow = sheet.getLastRow();
-    
+
     // Se só tiver cabeçalho ou estiver vazia
     if (lastRow < 2) {
       return [];
     }
 
     // Pega todos os dados de uma vez (performance)
-    // Range: Linha 1, Coluna 1, até Última Linha, Última Coluna
     var dataRange = sheet.getRange(1, 1, lastRow, sheet.getLastColumn());
     var values = dataRange.getValues();
 
@@ -49,10 +48,8 @@ var Database = {
     return data.map(function(row) {
       var obj = {};
       row.forEach(function(cell, index) {
-        // Pega a chave correspondente à coluna
         var key = normalizedHeaders[index];
         if (key) {
-          // TRATAMENTO ESPECIAL DE TIPOS
           obj[key] = self._normalizeValue(key, cell);
         }
       });
@@ -63,7 +60,8 @@ var Database = {
   /**
    * Adiciona um novo registro (linha) na planilha.
    * Gera ID automaticamente se não fornecido.
-   * 
+   * AUTO-CRIA colunas que não existem no cabeçalho.
+   *
    * @param {string} sheetName - Nome da aba.
    * @param {Object} dataObj - Objeto com os dados a inserir.
    * @returns {Object} O objeto inserido com ID.
@@ -71,18 +69,40 @@ var Database = {
   create: function(sheetName, dataObj) {
     var sheet = this._getSheet(sheetName);
     var headers = this._getHeaders(sheet);
-    
+
     // Gera ID único se não existir
     if (!dataObj.id) {
       dataObj.id = Utilities.getUuid();
     }
-    
+
     // Adiciona timestamps automáticos
     dataObj.created_at = new Date();
-    
+
     // Normaliza CPF antes de salvar (se existir no objeto)
     dataObj = this._normalizeObjectForSave(dataObj);
-    
+
+    // ================================================================
+    // AUTO-CRIAÇÃO DE COLUNAS FALTANTES
+    // Se o dataObj tem campos que não existem no header, cria as colunas
+    // ================================================================
+    var normalizedHeaders = headers.map(function(h) {
+      return String(h).toLowerCase().trim().replace(/\s+/g, '_');
+    });
+
+    for (var key in dataObj) {
+      if (dataObj.hasOwnProperty(key) && dataObj[key] !== '' && dataObj[key] !== null && dataObj[key] !== undefined) {
+        if (normalizedHeaders.indexOf(key) === -1) {
+          // Coluna não existe: cria no final do header
+          var newColIndex = headers.length + 1;
+          var headerLabel = key.toUpperCase();
+          sheet.getRange(1, newColIndex).setValue(headerLabel);
+          headers.push(headerLabel);
+          normalizedHeaders.push(key);
+          Logger.log('[Database] Auto-criada coluna "' + headerLabel + '" na aba ' + sheetName);
+        }
+      }
+    }
+
     // Monta a linha na ordem correta das colunas
     var row = headers.map(function(header) {
       var key = header.toLowerCase().trim().replace(/\s+/g, '_');
@@ -91,13 +111,14 @@ var Database = {
 
     // Escreve na planilha
     sheet.appendRow(row);
-    
+
     return dataObj;
   },
 
   /**
    * Atualiza um registro existente baseado no ID.
-   * 
+   * AUTO-CRIA colunas que não existem no cabeçalho.
+   *
    * @param {string} sheetName - Nome da aba.
    * @param {string} id - ID do registro a ser atualizado.
    * @param {Object} newData - Objeto com os campos a atualizar.
@@ -107,10 +128,10 @@ var Database = {
     var sheet = this._getSheet(sheetName);
     var data = sheet.getDataRange().getValues();
     var headers = data[0];
-    
+
     // Normaliza dados antes de atualizar
     newData = this._normalizeObjectForSave(newData);
-    
+
     // Mapeia índice da coluna ID
     var idIndex = -1;
     var normalizedHeaders = headers.map(function(h, i) {
@@ -123,23 +144,37 @@ var Database = {
       throw new Error('Coluna ID não encontrada na aba ' + sheetName);
     }
 
+    // Auto-cria colunas faltantes no update também
+    for (var key in newData) {
+      if (newData.hasOwnProperty(key) && newData[key] !== undefined) {
+        if (normalizedHeaders.indexOf(key) === -1) {
+          var newColIndex = headers.length + 1;
+          var headerLabel = key.toUpperCase();
+          sheet.getRange(1, newColIndex).setValue(headerLabel);
+          headers.push(headerLabel);
+          normalizedHeaders.push(key);
+          // Garante que o data array tenha a mesma quantidade de colunas
+          for (var r = 0; r < data.length; r++) {
+            data[r].push('');
+          }
+          Logger.log('[Database] Auto-criada coluna "' + headerLabel + '" na aba ' + sheetName + ' (update)');
+        }
+      }
+    }
+
     // Procura a linha correspondente
-    // Começa do 1 (pula cabeçalho)
     for (var i = 1; i < data.length; i++) {
       if (String(data[i][idIndex]) === String(id)) {
         var rowIndex = i + 1; // Linha na planilha (base 1)
-        
+
         // Atualiza apenas os campos fornecidos
-        // Itera sobre as colunas para saber qual atualizar
         normalizedHeaders.forEach(function(key, colIndex) {
           if (newData.hasOwnProperty(key)) {
-            // +1 porque getRange usa base 1
             sheet.getRange(rowIndex, colIndex + 1).setValue(newData[key]);
-            // Atualiza o array local também para retorno (opcional)
             data[i][colIndex] = newData[key];
           }
         });
-        
+
         // Retorna o objeto completo atualizado
         var updatedObj = {};
         var self = this;
@@ -149,7 +184,7 @@ var Database = {
         return updatedObj;
       }
     }
-    
+
     return null; // Não encontrado
   },
 
