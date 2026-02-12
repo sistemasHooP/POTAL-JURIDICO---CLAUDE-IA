@@ -267,6 +267,7 @@ function loadProcessoDetalhe(id) {
         if (countBadge) countBadge.textContent = movs ? movs.length : 0;
 
         Utils.hideLoading();
+        startAutoRefresh();
 
     }).catch(error => {
         console.error("Erro detalhes:", error);
@@ -1459,3 +1460,73 @@ document.addEventListener('click', function(e) {
         section.classList.add('hidden');
     }
 });
+
+// =============================================================================
+// AUTO-REFRESH - Polling silencioso para sincronização multi-usuário
+// =============================================================================
+let autoRefreshTimer = null;
+const AUTO_REFRESH_INTERVAL = 30000; // 30 segundos
+
+function startAutoRefresh() {
+    stopAutoRefresh();
+    autoRefreshTimer = setInterval(function() {
+        if (!currentProcessId || document.hidden) return;
+
+        API.call('getProcessoDetalhe', { id_processo: currentProcessId }, 'POST', true)
+            .then(function(data) {
+                if (!data || !data.movimentacoes) return;
+
+                var newCount = data.movimentacoes.length;
+                var oldCount = currentMovimentacoes.length;
+
+                // Compara quantidade de movimentações e status
+                var statusChanged = data.processo && currentProcessData && currentProcessData.processo
+                    && data.processo.status !== currentProcessData.processo.status;
+
+                if (newCount !== oldCount || statusChanged) {
+                    currentProcessData = data;
+                    currentMovimentacoes = data.movimentacoes || [];
+
+                    var p = data.processo;
+                    var movs = data.movimentacoes;
+                    var refMap = buildReferenceMap(movs);
+
+                    updateStatusUI(p.status);
+                    renderTimeline(movs, refMap);
+                    renderPrazosPanel(movs, refMap);
+                    populateReferenciaDropdown(movs, refMap);
+                    renderDocumentos(movs, p.link_pasta);
+                    loadNotasFromAPI(p);
+
+                    var countBadge = document.getElementById('mov-count-badge');
+                    if (countBadge) countBadge.textContent = movs.length;
+
+                    var cacheKey = 'getProcessoDetalhe_' + JSON.stringify({ id_processo: currentProcessId });
+                    Utils.Cache.set(cacheKey, data);
+
+                    Utils.showToast("Dados atualizados.", "info");
+                }
+            })
+            .catch(function() {
+                // Erro silencioso - não interrompe polling
+            });
+    }, AUTO_REFRESH_INTERVAL);
+}
+
+function stopAutoRefresh() {
+    if (autoRefreshTimer) {
+        clearInterval(autoRefreshTimer);
+        autoRefreshTimer = null;
+    }
+}
+
+// Pausa quando aba não está visível, retoma quando volta
+document.addEventListener('visibilitychange', function() {
+    if (document.hidden) {
+        stopAutoRefresh();
+    } else if (currentProcessId) {
+        startAutoRefresh();
+    }
+});
+
+window.addEventListener('beforeunload', stopAutoRefresh);

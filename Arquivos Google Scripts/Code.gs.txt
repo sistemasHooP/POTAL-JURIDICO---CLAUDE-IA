@@ -176,6 +176,25 @@ function _routeAction(payload) {
     case 'novaMovimentacao':
       return MovimentacoesService.novaMovimentacao(payload);
 
+    // Advogados (Gerenciamento)
+    case 'listarAdvogados':
+      return AdvogadoService.listar(payload);
+
+    case 'cadastrarAdvogado':
+      return AdvogadoService.cadastrar(payload);
+
+    case 'atualizarAdvogado':
+      return AdvogadoService.atualizar(payload);
+
+    case 'atribuirProcesso':
+      return AdvogadoService.atribuirProcesso(payload);
+
+    case 'listarProcessosAdvogado':
+      return AdvogadoService.listarProcessosAdvogado(payload);
+
+    case 'listarProcessosAtribuicao':
+      return AdvogadoService.listarProcessosParaAtribuicao(payload);
+
     // Drive
     case 'uploadArquivo':
       return DriveService.uploadArquivo(payload);

@@ -54,7 +54,15 @@ var ProcessosService = {
       return matchStatus && matchBusca;
     });
 
-    // 4) Ordenação (mais recentes primeiro)
+    // 4) Permissão: ADVOGADO só vê processos atribuídos a ele
+    if (auth.user.perfil.toUpperCase() === ENUMS.PERFIL.ADVOGADO) {
+      var advId = String(auth.user.id || '').trim();
+      resultado = resultado.filter(function(p) {
+        return String(p.advogado_id || '').trim() === advId;
+      });
+    }
+
+    // 5) Ordenação (mais recentes primeiro)
     resultado.sort(function(a, b) {
       return new Date(b.created_at) - new Date(a.created_at);
     });
@@ -251,6 +259,15 @@ var ProcessosService = {
       throw new Error('Processo não encontrado.');
     }
 
+    // ADVOGADO só pode acessar processo atribuído a ele
+    if (auth.user.perfil.toUpperCase() === ENUMS.PERFIL.ADVOGADO) {
+      var advId = String(auth.user.id || '').trim();
+      var procAdvId = String(processo.advogado_id || '').trim();
+      if (procAdvId !== advId) {
+        throw new Error('Você não tem acesso a este processo.');
+      }
+    }
+
     // Cliente só pode acessar processo vinculado a ele
     if (AuthService.isCliente(auth.user.perfil)) {
       var cliente = Database.findById(CONFIG.SHEET_NAMES.CLIENTES, auth.user.id);
@@ -350,6 +367,14 @@ var ProcessosService = {
     }
 
     var processos = Database.read(CONFIG.SHEET_NAMES.PROCESSOS);
+
+    // ADVOGADO só vê estatísticas dos processos atribuídos a ele
+    if (auth.user.perfil.toUpperCase() === ENUMS.PERFIL.ADVOGADO) {
+      var advId = String(auth.user.id || '').trim();
+      processos = processos.filter(function(p) {
+        return String(p.advogado_id || '').trim() === advId;
+      });
+    }
 
     var stats = {
       total: processos.length,
