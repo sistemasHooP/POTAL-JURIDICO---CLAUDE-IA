@@ -117,7 +117,7 @@
             });
         }
 
-        // Toggle notificações de movimentação
+        // Toggle notificações de movimentação - UI OTIMISTA (resposta instantânea)
         var toggleNotif = document.getElementById('toggle-notificacao');
         if (toggleNotif) {
             toggleNotif.addEventListener('change', function () {
@@ -125,29 +125,33 @@
                 var ativo = toggleNotif.checked;
                 var label = document.getElementById('notif-status-label');
 
-                if (label) label.textContent = 'Salvando...';
-                toggleNotif.disabled = true;
+                // OTIMISTA: Atualiza UI imediatamente sem esperar API
+                if (label) label.textContent = ativo ? 'Ativadas - e-mail a cada movimentação' : 'Desativadas';
+                Utils.showToast(ativo ? 'Notificações ativadas!' : 'Notificações desativadas.', 'success');
 
+                // Atualiza estado local imediatamente
+                clienteDetalheAtual.notificacoes_ativas = ativo ? 'SIM' : 'NAO';
+                clientes.forEach(function (c) {
+                    if (String(c.id) === String(clienteDetalheAtual.id)) {
+                        c.notificacoes_ativas = ativo ? 'SIM' : 'NAO';
+                    }
+                });
+
+                // Sincroniza com backend em background (não bloqueia UI)
                 API.call('atualizarCliente', {
                     cliente_id: clienteDetalheAtual.id,
                     notificacoes_ativas: ativo ? 'SIM' : 'NAO'
-                }, 'POST', true).then(function () {
-                    clienteDetalheAtual.notificacoes_ativas = ativo ? 'SIM' : 'NAO';
-                    if (label) label.textContent = ativo ? 'Ativadas - e-mail a cada movimentação' : 'Desativadas';
-                    Utils.showToast(ativo ? 'Notificações ativadas!' : 'Notificações desativadas.', 'success');
-
-                    // Atualiza na lista local
+                }, 'POST', true).catch(function (err) {
+                    // Reverte apenas se falhar
+                    toggleNotif.checked = !ativo;
+                    clienteDetalheAtual.notificacoes_ativas = !ativo ? 'SIM' : 'NAO';
                     clientes.forEach(function (c) {
                         if (String(c.id) === String(clienteDetalheAtual.id)) {
-                            c.notificacoes_ativas = ativo ? 'SIM' : 'NAO';
+                            c.notificacoes_ativas = !ativo ? 'SIM' : 'NAO';
                         }
                     });
-                }).catch(function (err) {
-                    toggleNotif.checked = !ativo;
-                    if (label) label.textContent = 'Erro ao salvar';
-                    Utils.showToast('Erro ao atualizar notificações: ' + (err.message || ''), 'error');
-                }).finally(function () {
-                    toggleNotif.disabled = false;
+                    if (label) label.textContent = 'Erro - tente novamente';
+                    Utils.showToast('Erro ao salvar notificação. Revertido.', 'error');
                 });
             });
         }
@@ -739,16 +743,33 @@
         var qtdEl = document.getElementById('detalhe-qtd-processos');
         qtdEl.textContent = processos.length + (processos.length === 1 ? ' processo' : ' processos');
 
-        // Botao "Novo Processo para este Cliente" - passa dados via URL para pular Step 1
+        // Botao "Novo Processo para este Cliente" - valida status antes
         var btnNovoProc = document.getElementById('btn-novo-processo-cliente');
         if (btnNovoProc) {
-            var params = new URLSearchParams();
-            params.set('cliente_id', cliente.id || '');
-            params.set('cliente_nome', cliente.nome_completo || cliente.nome || '');
-            params.set('cliente_cpf', String(cliente.cpf || '').replace(/\D/g, ''));
-            params.set('cliente_email', cliente.email || '');
-            params.set('cliente_telefone', cliente.telefone || '');
-            btnNovoProc.href = 'novo-processo.html?' + params.toString();
+            var statusCliente = String(cliente.status || 'ATIVO').toUpperCase();
+            if (statusCliente === 'BLOQUEADO' || statusCliente === 'INATIVO') {
+                // Bloqueia o botão para clientes inativos/bloqueados
+                btnNovoProc.removeAttribute('href');
+                btnNovoProc.style.pointerEvents = 'none';
+                btnNovoProc.className = 'w-full py-2.5 bg-slate-300 text-slate-500 rounded-lg font-medium flex items-center justify-center gap-2 cursor-not-allowed';
+                btnNovoProc.innerHTML =
+                    '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>' +
+                    (statusCliente === 'BLOQUEADO' ? 'Cliente Bloqueado - Não é possível abrir processo' : 'Cliente Inativo - Ative o cadastro primeiro');
+            } else {
+                // Cliente ativo - permite criar processo
+                var params = new URLSearchParams();
+                params.set('cliente_id', cliente.id || '');
+                params.set('cliente_nome', cliente.nome_completo || cliente.nome || '');
+                params.set('cliente_cpf', String(cliente.cpf || '').replace(/\D/g, ''));
+                params.set('cliente_email', cliente.email || '');
+                params.set('cliente_telefone', cliente.telefone || '');
+                btnNovoProc.href = 'novo-processo.html?' + params.toString();
+                btnNovoProc.style.pointerEvents = '';
+                btnNovoProc.className = 'w-full py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-all';
+                btnNovoProc.innerHTML =
+                    '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>' +
+                    'Novo Processo para este Cliente';
+            }
         }
 
         var modal = document.getElementById('modal-detalhe');

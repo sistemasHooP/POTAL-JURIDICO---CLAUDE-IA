@@ -41,10 +41,16 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // 3. Envio do Formulário de Login
+    // 3. Envio do Formulário de Login (com proteção contra double-submit)
+    let loginEmAndamento = false;
+    const btnSubmit = loginForm ? loginForm.querySelector('button[type="submit"]') : null;
+
     if (loginForm) {
         loginForm.addEventListener('submit', async function(e) {
             e.preventDefault();
+
+            // Bloqueia múltiplos cliques
+            if (loginEmAndamento) return;
 
             const email = emailInput.value.trim();
             const senha = senhaInput.value;
@@ -54,6 +60,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
+            // Trava o formulário imediatamente
+            loginEmAndamento = true;
+            if (btnSubmit) {
+                btnSubmit.disabled = true;
+                btnSubmit.classList.add('opacity-60', 'cursor-not-allowed');
+            }
+            emailInput.readOnly = true;
+            senhaInput.readOnly = true;
+
             try {
                 // 1. TELA DE SINCRONIZAÇÃO (Loader Principal Personalizado)
                 Utils.showLoading("Sincronizando banco de dados...", "database");
@@ -61,17 +76,28 @@ document.addEventListener('DOMContentLoaded', function() {
                 // 2. Autenticação (Modo Silencioso)
                 const response = await API.call('login', { email, senha }, 'POST', true);
 
-                // Se chegou aqui, login ok
+                // Se chegou aqui, login ok - salva sessão ANTES de redirecionar
                 Auth.saveSession(response);
                 Utils.hideLoading();
                 Utils.showToast("Login realizado com sucesso!", "success");
 
-                // Redireciona imediatamente (preload acontece no dashboard via SWR)
-                Utils.navigateTo(CONFIG.PAGES.DASHBOARD);
+                // Redireciona após breve delay para garantir que a sessão foi salva
+                setTimeout(function() {
+                    Utils.navigateTo(CONFIG.PAGES.DASHBOARD);
+                }, 150);
 
             } catch (error) {
                 console.error("Falha no login:", error);
                 Utils.hideLoading();
+
+                // Destrava o formulário para nova tentativa
+                loginEmAndamento = false;
+                if (btnSubmit) {
+                    btnSubmit.disabled = false;
+                    btnSubmit.classList.remove('opacity-60', 'cursor-not-allowed');
+                }
+                emailInput.readOnly = false;
+                senhaInput.readOnly = false;
 
                 emailInput.classList.add('border-red-500');
                 senhaInput.classList.add('border-red-500');
