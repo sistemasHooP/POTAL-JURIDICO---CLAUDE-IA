@@ -1299,17 +1299,36 @@ function setupFileInput() {
     const fileInput = document.getElementById('mov-arquivo');
     const fileName = document.getElementById('file-name');
     const icon = document.getElementById('icon-upload');
+    const subtitleEl = fileInput ? fileInput.closest('label').querySelector('p:last-child') : null;
 
     if (fileInput) {
         fileInput.addEventListener('change', function() {
             if (this.files && this.files.length > 0) {
-                fileName.textContent = this.files[0].name;
-                fileName.classList.add('text-blue-600', 'font-medium');
-                icon.classList.add('text-blue-500');
+                var file = this.files[0];
+                var sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+                fileName.textContent = file.name;
+                fileName.classList.add('text-green-600', 'font-semibold');
+                fileName.classList.remove('text-slate-500');
+                icon.classList.remove('text-slate-400');
+                icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>';
+                icon.classList.add('text-green-500');
+                if (subtitleEl) {
+                    subtitleEl.textContent = 'Pronto para envio - ' + sizeMB + ' MB';
+                    subtitleEl.classList.add('text-green-500');
+                    subtitleEl.classList.remove('text-slate-400');
+                }
             } else {
-                fileName.textContent = "Clique para anexar PDF ou Imagem";
-                fileName.classList.remove('text-blue-600', 'font-medium');
-                icon.classList.remove('text-blue-500');
+                fileName.textContent = "Anexar PDF ou Imagem";
+                fileName.classList.remove('text-green-600', 'font-semibold');
+                fileName.classList.add('text-slate-500');
+                icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>';
+                icon.classList.remove('text-green-500');
+                icon.classList.add('text-slate-400');
+                if (subtitleEl) {
+                    subtitleEl.textContent = 'Opcional - max 5MB';
+                    subtitleEl.classList.remove('text-green-500');
+                    subtitleEl.classList.add('text-slate-400');
+                }
             }
         });
     }
