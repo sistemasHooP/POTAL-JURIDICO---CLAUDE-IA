@@ -235,7 +235,6 @@ function loadProcessoDetalhe(id) {
             if (p.link_pasta) {
                 btnDrive.href = p.link_pasta;
                 btnDrive.classList.remove('hidden');
-                btnDrive.classList.add('inline-flex');
             } else {
                 btnDrive.classList.add('hidden');
             }
