@@ -4,7 +4,7 @@
  * DESCRIÇÃO: Lógica da tela de detalhes, timeline, stepper, prazos inteligentes
  *            com sistema de referências (vinculação entre movimentações),
  *            notas internas e exportação de relatório.
- * VERSÃO: 5.1 - Persistência no banco via API + UI otimista como fallback temporário
+ * VERSÃO: 6.0 - Header profissional, floating button, Drive iframe, notificações
  * DEPENDÊNCIAS: js/api.js, js/auth.js, js/utils.js
  * ============================================================================
  */
@@ -42,6 +42,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     setupFileInput();
     setupNotasInternas();
+    setupFloatingButton();
 
     const formMov = document.getElementById('form-movimentacao');
     if (formMov) {
@@ -229,13 +230,21 @@ function loadProcessoDetalhe(id) {
         renderClienteInfo(p);
 
         const btnDrive = document.getElementById('btn-drive');
+        const btnDriveIframe = document.getElementById('btn-drive-iframe');
         if (btnDrive) {
             if (p.link_pasta) {
                 btnDrive.href = p.link_pasta;
                 btnDrive.classList.remove('hidden');
                 btnDrive.classList.add('inline-flex');
+                // Habilita botão de iframe para ver arquivos sem sair
+                if (btnDriveIframe) {
+                    btnDriveIframe.classList.remove('hidden');
+                    btnDriveIframe.classList.add('inline-flex');
+                    btnDriveIframe.dataset.driveUrl = p.link_pasta;
+                }
             } else {
                 btnDrive.classList.add('hidden');
+                if (btnDriveIframe) btnDriveIframe.classList.add('hidden');
             }
         }
 
@@ -265,17 +274,23 @@ function loadProcessoDetalhe(id) {
 // =============================================================================
 function renderClienteInfo(processo) {
     const panel = document.getElementById('proc-cliente-info');
+    const noneLabel = document.getElementById('proc-cliente-none');
     if (!panel) return;
+
+    function showCliente(nome, extra) {
+        document.getElementById('proc-cliente-nome').textContent = nome;
+        document.getElementById('proc-cliente-email').textContent = extra || '';
+        panel.classList.remove('hidden');
+        if (noneLabel) noneLabel.classList.add('hidden');
+    }
 
     const clienteId = processo.cliente_id;
     if (!clienteId) {
-        // Fallback: mostra parte_nome se tiver email
         if (processo.parte_nome && processo.email_interessado) {
-            document.getElementById('proc-cliente-nome').textContent = processo.parte_nome;
-            document.getElementById('proc-cliente-email').textContent = processo.email_interessado;
-            panel.classList.remove('hidden');
+            showCliente(processo.parte_nome, processo.email_interessado);
         } else {
             panel.classList.add('hidden');
+            if (noneLabel) noneLabel.classList.remove('hidden');
         }
         return;
     }
@@ -283,15 +298,11 @@ function renderClienteInfo(processo) {
     API.call('buscarClientePorIdGestor', { cliente_id: clienteId }, 'POST', true)
     .then(cliente => {
         if (cliente && cliente.nome_completo) {
-            document.getElementById('proc-cliente-nome').textContent = cliente.nome_completo;
-            document.getElementById('proc-cliente-email').textContent = (cliente.email || '') + (cliente.telefone ? ' | ' + cliente.telefone : '');
-            panel.classList.remove('hidden');
+            showCliente(cliente.nome_completo, (cliente.email || '') + (cliente.telefone ? ' | ' + cliente.telefone : ''));
         }
     }).catch(() => {
         if (processo.parte_nome) {
-            document.getElementById('proc-cliente-nome').textContent = processo.parte_nome;
-            document.getElementById('proc-cliente-email').textContent = processo.email_interessado || '';
-            panel.classList.remove('hidden');
+            showCliente(processo.parte_nome, processo.email_interessado || '');
         }
     });
 }
@@ -1275,4 +1286,108 @@ function fileToBase64(file) {
         reader.onload = () => resolve(reader.result.split(',')[1]);
         reader.onerror = error => reject(error);
     });
+}
+
+// =============================================================================
+// FLOATING ACTION BUTTON - "Nova Movimentação"
+// =============================================================================
+function setupFloatingButton() {
+    const mainContent = document.getElementById('main-content');
+    const fab = document.getElementById('fab-nova-mov');
+    const formSection = document.getElementById('form-section');
+    if (!mainContent || !fab || !formSection) return;
+
+    let ticking = false;
+    mainContent.addEventListener('scroll', function() {
+        if (!ticking) {
+            window.requestAnimationFrame(function() {
+                const formRect = formSection.getBoundingClientRect();
+                const viewportHeight = window.innerHeight;
+                // Mostra FAB se o formulário não está visível
+                if (formRect.top > viewportHeight + 100 || formRect.bottom < -100) {
+                    fab.classList.remove('hidden');
+                } else {
+                    fab.classList.add('hidden');
+                }
+                ticking = false;
+            });
+            ticking = true;
+        }
+    });
+}
+
+window.scrollToForm = function() {
+    const formSection = document.getElementById('form-section');
+    if (formSection) {
+        formSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // Foca no primeiro campo depois de scroll
+        setTimeout(function() {
+            var tipoSelect = document.getElementById('mov-tipo');
+            if (tipoSelect) tipoSelect.focus();
+        }, 600);
+    }
+};
+
+// =============================================================================
+// DRIVE IFRAME VIEWER - Ver arquivos sem sair da página
+// =============================================================================
+let driveViewerOpen = false;
+
+window.toggleDriveViewer = function() {
+    const section = document.getElementById('drive-viewer-section');
+    const iframe = document.getElementById('drive-iframe');
+    const loader = document.getElementById('drive-iframe-loader');
+    if (!section) return;
+
+    driveViewerOpen = !driveViewerOpen;
+
+    if (driveViewerOpen) {
+        section.classList.remove('hidden');
+
+        // Extrai folder ID da URL do Drive
+        const btnIframe = document.getElementById('btn-drive-iframe');
+        const driveUrl = btnIframe ? btnIframe.dataset.driveUrl : '';
+        const folderId = extractDriveFolderId(driveUrl);
+
+        if (folderId && iframe) {
+            iframe.src = 'https://drive.google.com/embeddedfolderview?id=' + folderId + '#list';
+            iframe.onload = function() {
+                if (loader) loader.classList.add('hidden');
+                iframe.classList.remove('hidden');
+            };
+            // Timeout: se não carregar em 5s, mostra mesmo assim
+            setTimeout(function() {
+                if (loader) loader.classList.add('hidden');
+                iframe.classList.remove('hidden');
+            }, 5000);
+        } else {
+            // Sem folder ID, abre link direto
+            if (loader) loader.innerHTML = '<p class="text-sm text-slate-500 py-8">Pasta não disponível para visualização inline. Use o botão "Drive" acima.</p>';
+        }
+
+        // Scroll suave até o viewer
+        setTimeout(function() {
+            section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
+    } else {
+        section.classList.add('hidden');
+        if (iframe) iframe.src = '';
+        if (loader) {
+            loader.classList.remove('hidden');
+            loader.innerHTML = '<div class="animate-spin rounded-full h-8 w-8 border-4 border-slate-200 border-t-indigo-500"></div><p class="ml-3 text-sm text-slate-500">Carregando arquivos...</p>';
+        }
+    }
+};
+
+function extractDriveFolderId(url) {
+    if (!url) return null;
+    // Formatos comuns:
+    // https://drive.google.com/drive/folders/XXXXXXX
+    // https://drive.google.com/drive/folders/XXXXXXX?usp=sharing
+    var match = url.match(/\/folders\/([a-zA-Z0-9_-]+)/);
+    if (match) return match[1];
+    // Formato: id=XXXXXXX
+    match = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+    if (match) return match[1];
+    return null;
 }

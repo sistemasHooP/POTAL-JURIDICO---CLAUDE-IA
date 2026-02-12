@@ -211,10 +211,36 @@
             {},
             function (resultado, source) {
                 processosCache = Array.isArray(resultado) ? resultado : [];
+                // Atualiza badges de contagem de processos nos clientes já renderizados
+                atualizarBadgesProcessos();
             },
             true,
             false
         );
+    }
+
+    function atualizarBadgesProcessos() {
+        if (!processosCache.length) return;
+        var badges = document.querySelectorAll('[data-badge-cliente-id]');
+        badges.forEach(function(el) {
+            var clienteId = el.getAttribute('data-badge-cliente-id');
+            var clienteNome = el.getAttribute('data-badge-cliente-nome') || '';
+            var count = 0;
+
+            processosCache.forEach(function(p) {
+                var pClienteId = String(p.cliente_id || '');
+                var parteNome = String(p.parte_nome || '').trim().toLowerCase();
+                if ((clienteId && pClienteId === clienteId) || (clienteNome && parteNome === clienteNome)) {
+                    count++;
+                }
+            });
+
+            if (count > 0) {
+                el.innerHTML = '<span class="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full font-bold">' + count + ' proc.</span>';
+            } else {
+                el.innerHTML = '';
+            }
+        });
     }
 
     // =========================================================================
@@ -385,10 +411,12 @@
             var statusCfg = getStatusConfig(c.status);
             var iniciais = Utils.escapeHtml(getIniciais(c.nome_completo || c.nome));
 
-            // Contar processos do cliente
+            // Badge de processos - usa data attribute para atualização assíncrona
+            var clienteIdStr = String(c.id || '');
+            var clienteNomeStr = String(c.nome_completo || c.nome || '').trim().toLowerCase();
             var qtdProcessos = contarProcessosCliente(c);
-            var badgeProcessos = qtdProcessos > 0
-                ? '<span class="ml-2 text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full font-bold">' + qtdProcessos + ' proc.</span>'
+            var badgeHtml = qtdProcessos > 0
+                ? '<span class="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full font-bold">' + qtdProcessos + ' proc.</span>'
                 : '';
 
             tr.innerHTML =
@@ -399,7 +427,7 @@
                             '<p class="font-medium text-slate-800 group-hover:text-blue-600 transition-colors truncate">' + nome + '</p>' +
                             '<p class="text-xs text-slate-400 sm:hidden">' + cpf + '</p>' +
                         '</div>' +
-                        badgeProcessos +
+                        '<span class="ml-1" data-badge-cliente-id="' + Utils.escapeHtml(clienteIdStr) + '" data-badge-cliente-nome="' + Utils.escapeHtml(clienteNomeStr) + '">' + badgeHtml + '</span>' +
                     '</div>' +
                 '</td>' +
                 '<td class="px-4 py-3 hidden sm:table-cell text-slate-600">' + cpf + '</td>' +

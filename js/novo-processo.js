@@ -342,11 +342,15 @@
             var email = escapeHtml(c.email || '-');
             var id = escapeHtml(String(c.id || ''));
             var iniciais = escapeHtml(getIniciais(c.nome_completo));
+            var statusCli = String(c.status || 'ATIVO').toUpperCase();
+            var isBloqueado = (statusCli === 'BLOQUEADO' || statusCli === 'INATIVO');
+            var avatarBg = isBloqueado ? 'bg-red-400' : 'bg-blue-500';
+            var statusTag = isBloqueado ? ' <span class="text-[9px] font-bold px-1 py-0.5 rounded bg-red-100 text-red-600 ml-1">' + statusCli + '</span>' : '';
 
-            html += '<button type="button" class="sugestao-item w-full text-left px-4 py-3 hover:bg-blue-50 border-b border-slate-100 last:border-b-0 flex items-center gap-3 transition-colors" data-id="' + id + '">' +
-                '<div class="w-9 h-9 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0">' + iniciais + '</div>' +
+            html += '<button type="button" class="sugestao-item w-full text-left px-4 py-3 hover:bg-blue-50 border-b border-slate-100 last:border-b-0 flex items-center gap-3 transition-colors' + (isBloqueado ? ' opacity-60' : '') + '" data-id="' + id + '">' +
+                '<div class="w-9 h-9 ' + avatarBg + ' rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0">' + iniciais + '</div>' +
                 '<div class="min-w-0 flex-1">' +
-                '<div class="text-sm font-medium text-slate-700 truncate">' + nome + '</div>' +
+                '<div class="text-sm font-medium text-slate-700 truncate">' + nome + statusTag + '</div>' +
                 '<div class="text-xs text-slate-500">' + cpf + ' &middot; ' + email + '</div>' +
                 '</div>' +
                 '<svg class="w-4 h-4 text-slate-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>' +
@@ -529,6 +533,16 @@
     // SELECIONAR / MOSTRAR CLIENTE
     // =========================================================================
     function selecionarCliente(cliente) {
+        // Bloqueia seleção de clientes inativos ou bloqueados
+        var statusCliente = String(cliente.status || 'ATIVO').toUpperCase();
+        if (statusCliente === 'INATIVO' || statusCliente === 'BLOQUEADO') {
+            var msg = statusCliente === 'BLOQUEADO'
+                ? 'Cliente BLOQUEADO. Não é possível abrir processo para este cliente.'
+                : 'Cliente INATIVO. Ative o cadastro antes de abrir um processo.';
+            Utils.showToast(msg, 'error');
+            return;
+        }
+
         clienteSelecionado = cliente;
 
         var cpfDisplay = formatarCPF(cliente.cpf);

@@ -143,6 +143,35 @@
                 </div>
             </div>
 
+            <!-- Painel de Notificações / Prazos -->
+            <div id="notificacoes-panel" class="hidden mb-8">
+                <div class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+                    <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-amber-50 to-orange-50">
+                        <div class="flex items-center gap-3">
+                            <div class="relative">
+                                <div class="w-10 h-10 rounded-full bg-amber-500 text-white flex items-center justify-center shadow-md">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                                </div>
+                                <span id="notif-count" class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white">0</span>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-slate-800 text-sm">Prazos e Alertas</h3>
+                                <p class="text-[11px] text-slate-500">Prazos que precisam de atenção</p>
+                            </div>
+                        </div>
+                        <button id="btn-toggle-notif" onclick="toggleNotificacoes()" class="text-xs text-slate-500 hover:text-slate-700 font-medium flex items-center gap-1 px-3 py-1.5 rounded-lg hover:bg-slate-100 transition-colors">
+                            <svg id="notif-chevron" class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                    </div>
+                    <div id="notificacoes-list" class="divide-y divide-slate-50 max-h-80 overflow-y-auto">
+                        <!-- JS preencherá -->
+                        <div class="px-6 py-4 text-center text-slate-400 text-sm">
+                            <div class="animate-pulse">Verificando prazos...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Seção de Acesso Rápido (Mobile Only) -->
             <div class="md:hidden grid grid-cols-2 gap-4 mb-8">
                 <a href="novo-processo.html" class="bg-slate-800 text-white p-4 rounded-xl flex flex-col items-center justify-center shadow-lg active:scale-95 transition-transform">
